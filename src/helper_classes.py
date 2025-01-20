@@ -13,8 +13,7 @@ class SimulationUI:
         self.show_ui = show_ui
         self.master = master
         self.is_paused = False
-        self.animation = None
-        self.steps = 0  # Initialize the step counter
+        self.steps = 0
 
         if self.show_ui:
             self.master.title("Car Traffic in a 2D street network.")
@@ -23,11 +22,13 @@ class SimulationUI:
             self.controls_frame.pack(side=tk.LEFT, padx=10)
 
             self.steps_slider = self.create_slider("Steps", 50, 200, 100)
-            self.grid_size_slider = self.create_slider("Grid Size", 10, 100, 60)
-            self.blocks_size_slider = self.create_slider("Blocks Size", 2, 40, 10)
-            self.lane_width_slider = self.create_slider("Lane Width", 2, 10, 2)
+            self.frame_rate_slider = self.create_slider("Frame Rate", 1, 500, 40)
+
+            self.grid_size_slider = self.create_slider("Grid Size", 10, 1000, 60)
+            self.blocks_size_slider = self.create_slider("Blocks Size", 2, 50, 10)
+            self.lane_width_slider = self.create_slider("Lane Width", 2, 30, 2)
             self.car_speed_slider = self.create_slider("Car Speed", 1, 5, 1)
-            self.car_count_slider = self.create_slider("Car Count", 1, 10, 5)
+            self.car_count_slider = self.create_slider("Car Count", 1, 10000, 10)
 
             self.start_button = tk.Button(
                 self.controls_frame,
@@ -42,13 +43,6 @@ class SimulationUI:
                 command=self.pause_simulation,
             )
             self.pause_button.pack(pady=5)
-
-            self.restart_button = tk.Button(
-                self.controls_frame,
-                text="Restart Simulation",
-                command=self.restart_simulation,
-            )
-            self.restart_button.pack(pady=5)
 
             self.fig, self.ax = plt.subplots(figsize=(6, 6))
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
@@ -85,27 +79,37 @@ class SimulationUI:
         return slider
 
     def start_simulation(self):
-        """Start the simulation with the parameters from the sliders"""
+        """
+        Start the simulation with the parameters from the sliders
+        Can also restart if previous simulation is running.
+        """
+        # Restart the simulation
+        if self.animation:
+            self.animation.event_source.stop()
+            self.ax.clear()
+            self.canvas.draw()
+
         steps = self.steps_slider.get()
+        frame_rate = self.frame_rate_slider.get()
+
         grid_size = self.grid_size_slider.get()
         blocks_size = self.blocks_size_slider.get()
         lane_width = self.lane_width_slider.get()
         car_speed = self.car_speed_slider.get()
         car_count = self.car_count_slider.get()
 
-        self.steps = 0  # Reset step counter when restarting
+        self.steps = 0
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
         )
         cars = self.create_cars(car_count, car_speed)
         self.grid.add_cars(cars)
 
-        # Start the animation
         self.animation = FuncAnimation(
             self.fig,
             self.update_simulation,
             frames=range(steps),
-            interval=500,
+            interval=frame_rate,
             repeat=False,
         )
         self.canvas.draw()
@@ -113,13 +117,13 @@ class SimulationUI:
     def update_simulation(self, frame: int):
         """Update the simulation"""
         if self.is_paused:
-            return  # Don't update the simulation if paused
+            return
 
         self.grid.update_movement()
 
         self.ax.clear()
         self.ax.imshow(self.grid.grid, cmap="Greys", interpolation="nearest")
-        self.ax.set_title(f"Simulation step {frame}")
+        self.ax.set_title(f"Simulation step {frame + 1}")
 
         self.canvas.draw()
 
@@ -127,28 +131,18 @@ class SimulationUI:
         """Pause the simulation"""
         if self.animation and not self.is_paused:
             self.is_paused = True
-            self.animation.event_source.stop()  # Stop the animation
+            self.animation.event_source.stop()
             print("Simulation paused.")
+
         elif self.animation and self.is_paused:
             self.is_paused = False
-            self.animation.event_source.start()  # Start the animation
+            self.animation.event_source.start()
             print("Simulation resumed.")
-
-    def restart_simulation(self):
-        """Restart the simulation from the beginning"""
-        if self.animation:
-            # Stop the current animation and clear it
-            self.animation.event_source.stop()
-            self.ax.clear()
-            self.canvas.draw()
-
-        print("Simulation restarted.")
-        self.start_simulation()  # Restart the simulation from the beginning
 
     def create_cars(self, car_count: int, car_speed: int) -> list:
         """Create a list of cars with random positions and directions"""
-        cars = []
-        for _ in range(car_count):
+        cars = np.zeros(car_count, dtype=object)
+        for i in range(car_count):
             while (
                 self.grid.grid[
                     x := np.random.randint(0, self.grid.size),
@@ -162,7 +156,7 @@ class SimulationUI:
             dy = 0 if dx != 0 else np.random.choice([-1, 1])
 
             car = Car(position=(x, y), direction=(dx, dy), speed=car_speed)
-            cars.append(car)
+            cars[i] = car
         return cars
 
     def run_simulation_without_ui(
