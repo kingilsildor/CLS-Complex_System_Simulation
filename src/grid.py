@@ -1,16 +1,22 @@
 import numpy as np
-import matplotlib.pyplot as plt
-
-ROAD_VALUE = 0
-CAR_VALUE = 3
-BLOCKS_VALUE = 1
+from src.utils import ROAD_VALUE, BLOCKS_VALUE, CAR_VALUE
 
 class Grid:
-    def __init__(self, size, blocks, lane_width=2):
-        self.grid = np.full((size, size), BLOCKS_VALUE, dtype=int)
-        self.size = size
-        self.blocks = blocks
-        self.lane_width = lane_width if lane_width % 2 == 0 else lane_width + 1
+    def __init__(self, grid_size: int, blocks_size: int, lane_width: int = 2):
+        self.grid = np.full((grid_size, grid_size), BLOCKS_VALUE, dtype=int)
+        self.size = grid_size
+        self.blocks = blocks_size
+
+        try:
+            if lane_width % 2 != 0:
+                raise ValueError(f"\033[91mThe lane width should be even!\033[0m")
+            self.lane_width = lane_width
+        except ValueError as e:
+            print(e)
+            self.lane_width = lane_width + 1
+            print(f"Setting value to {self.lane_width}")
+
+        self.cars = []
         self.roads()
 
     def roads(self):
@@ -26,27 +32,29 @@ class Grid:
         self.grid[-self.lane_width:, :] = ROAD_VALUE
         self.grid[:, :self.lane_width] = ROAD_VALUE
         self.grid[:, -self.lane_width:] = ROAD_VALUE
-    
-    def plot(self):
-        """
-        Plot the grid
-        """
-        plt.figure(figsize=(6, 6))
-        plt.imshow(self.grid, cmap='Greys', extent=[0, self.size, 0, self.size])
 
-        plt.grid(True, which='both', axis='both', color='black', linestyle='-', linewidth=0.5)
-        plt.xticks(np.arange(0, self.size, 1), labels=[])
-        plt.yticks(np.arange(0, self.size, 1), labels=[])
-
-        plt.show()
-
-    def add_car(self, car):
+    def add_cars(self, cars: list):
         """
-        Add a car to the grid
+        Add cars to the grid.
         """
-        x, y = car
-        self.grid[x, y] = CAR_VALUE
+        self.cars.extend(cars)
+        print(f"Added {len(cars)} cars to the grid.")
 
-grid = Grid(50, 5, lane_width=2)
-grid.add_car((0, 0))
-grid.plot()
+    def update_movement(self):
+        """
+        Update the grid and move all cars.
+        """
+        self.grid.fill(BLOCKS_VALUE)
+        self.roads()
+
+        for car in self.cars:
+            car.move(self)
+            x, y = car.position
+            self.grid[x, y] = CAR_VALUE
+
+    def display(self):
+        """
+        Display the grid (for testing).
+        """
+        print(self.grid)
+
