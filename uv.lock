@@ -2,10 +2,21 @@ version = 1
 requires-python = ">=3.12"
 
 [[package]]
+name = "cellpylib"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/1e/c606ac9bf0277524cd935d6c2bb5b387c3bf401fa8ddbb59b622d6dd50af/cellpylib-2.4.0.tar.gz", hash = "sha256:e23ff7b5f647c23958748727c899b4e57b667c9f18cbc66d7577dbfaab3729ef", size = 38296 }
+
+[[package]]
 name = "complex-system-simulation"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "cellpylib" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "scipy" },
@@ -13,6 +24,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cellpylib", specifier = ">=2.4.0" },
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "numpy", specifier = ">=2.2.2" },
     { name = "scipy", specifier = ">=1.15.1" },
