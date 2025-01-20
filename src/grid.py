@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from car import Car
 
 class Grid:
     def __init__(self, size, blocks, lane_width=2):
@@ -23,13 +24,24 @@ class Grid:
         self.grid[-self.lane_width:, :] = 1
         self.grid[:, :self.lane_width] = 1
         self.grid[:, -self.lane_width:] = 1
-    
+
+        
+        # for i in range(self.blocks, self.size, self.blocks):
+        #     for j in range(self.blocks, self.size, self.blocks):
+        #         #2x2 rotary at intersection
+        #         x0 = max(0, i - 1)
+        #         y0 = max(0, j - 1)
+        #         x1 = min(self.size, i + 1)  # slicing end index is exclusive
+        #         y1 = min(self.size, j + 1)
+        #         # This creates a 2x2 block in [x0:x1, y0:y1]
+        #         self.grid[x0:x1, y0:y1] = 2
 
     def plot(self):
         """
         Plot the grid
         """
-        plt.imshow(self.grid, cmap='gray', interpolation='nearest')
+        plt.imshow(self.grid, cmap='viridis', interpolation='nearest')
+        plt.colorbar(label="Cell Type")
         plt.show()
 
     def add_car(self, car):
@@ -39,6 +51,16 @@ class Grid:
         x, y = car
         self.grid[x, y] = 3
 
-grid = Grid(25, 5, lane_width=3)
-grid.add_car((0, 0))
+grid = Grid(25, 5, lane_width=2)
 grid.plot()
+cars = [
+    Car(grid, position=(0,0), direction='E'),
+    Car(grid, position=(0,10), direction='S'),
+    Car(grid, position=(10,0), direction='N')
+]
+
+
+for _ in range(10):
+    for car in cars:
+        car.move_car()
+        grid.plot()
