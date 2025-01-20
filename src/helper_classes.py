@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from src.utils import BLOCKS_VALUE, CAR_VALUE, ROAD_VALUE
+from src.utils import BLOCKS_VALUE, CAR_VALUE, ROAD_VALUE, FILE_EXTENSION
 
 
 class SimulationUI:
@@ -89,6 +89,7 @@ class SimulationUI:
             self.ax.clear()
             self.canvas.draw()
 
+        self.write_header()
         steps = self.steps_slider.get()
         frame_rate = self.frame_rate_slider.get()
 
@@ -120,6 +121,7 @@ class SimulationUI:
             return
 
         self.grid.update_movement()
+        self.write_simulation(frame)
 
         self.ax.clear()
         self.ax.imshow(self.grid.grid, cmap="Greys", interpolation="nearest")
@@ -167,7 +169,7 @@ class SimulationUI:
         lane_width: int,
         car_speed: int,
         car_count: int,
-    ) -> np.ndarray:
+    ):
         """Run the simulation without showing the UI and return the grid states"""
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
@@ -175,12 +177,24 @@ class SimulationUI:
         cars = self.create_cars(car_count, car_speed)
         self.grid.add_cars(cars)
 
-        grid_states = np.zeros((steps, grid_size, grid_size), dtype=int)
+        self.write_header()
         for step in range(steps):
             self.grid.update_movement()
-            grid_states[step] = self.grid.grid.copy()
+            self.write_simulation(step)
 
-        return grid_states
+    def write_header(self):
+        """Write the header to the simulation file"""
+        with open(f"data/simulation.{FILE_EXTENSION}", "w") as f:
+            f.write(
+                "Step; Grid_State\n"
+            )
+
+    def write_simulation(self, step: int):
+        """Write the simulation to a file"""
+        grid_state = str(self.grid.grid.tolist())
+
+        with open(f"data/simulation.{FILE_EXTENSION}", "a") as f:
+            f.write(f"{step}; {grid_state}\n")
 
 
 class Grid:
