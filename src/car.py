@@ -76,21 +76,34 @@ class Car:
     def move_car(self) -> None:
         """
         Move the car one step based on its current direction.
-
-        The car will move unless it is inside a rotary. If inside a rotary, it will follow the rotary movement.
-
-        Returns:
-        --------
-        - None: The car moves to the next cell or stays in
+        If the car reaches the grid boundary, it is removed from the system.
         """
         if not self.in_rotary:
             new_x, new_y = self.next_position(*self.position)
+
+            # If car reaches boundary, remove it from the grid
             if new_x is None or new_y is None:
-                return  # No suitable next cell
+                x, y = self.position
+                self.grid.grid[x, y] = self.road_code_for_direction()
+                if self in self.grid.cars:
+                    self.grid.cars.remove(self)
+                return
 
             next_code = self.grid.grid[new_x, new_y]
 
+            # Try to move straight through intersection if possible
             if next_code == INTERSECTION_VALUE:
+                # Look ahead one more step
+                ahead_x, ahead_y = self.next_position(new_x, new_y)
+                if ahead_x is not None and ahead_y is not None:
+                    ahead_code = self.grid.grid[ahead_x, ahead_y]
+                    if self.can_move_into(ahead_code, check_rotary=False):
+                        # Move through intersection
+                        self.move_to(
+                            new_x, new_y, old_code=self.road_code_for_direction()
+                        )
+                        return
+                # If can't move straight, enter rotary
                 self.enter_rotary(new_x, new_y)
             elif self.can_move_into(next_code, check_rotary=False):
                 self.move_to(new_x, new_y, old_code=self.road_code_for_direction())
@@ -140,8 +153,12 @@ class Car:
         """
         Move the car within the rotary.
 
-        The car moves in a circular path inside the rotary. It will exit if a suitable exit is found.
-        If no exit is found, the car will rotate within the rotary.
+        The car moves in a circular path inside the rotary. When entering a rotary,
+        it will choose a random exit direction and ensure it exits in the correct lane:
+        - Going North: Exit on right lane
+        - Going South: Exit on left lane
+        - Going East: Exit on bottom lane
+        - Going West: Exit on top lane
 
         Returns:
         --------
@@ -150,19 +167,90 @@ class Car:
         x, y = self.position
         f = self.grid.flag[x, y]
 
-        if f == 0:
-            # If not flagged, exit the rotary if possible
-            exit_x, exit_y = self.get_exit_position()
-            if exit_x is not None and self.can_move_into(
-                self.grid.grid[exit_x, exit_y], check_rotary=False
-            ):
-                self.grid.grid[x, y] = INTERSECTION_VALUE
-                self.grid.grid[exit_x, exit_y] = CAR_VALUE
-                self.position = (exit_x, exit_y)
-                self.in_rotary = False
+        # Choose a random exit direction if we haven't yet
+        if not hasattr(self, "exit_direction"):
+            import random
+
+            # Get possible exit directions based on current position
+            possible_exits = []
+            for direction in ["N", "S", "E", "W"]:
+                self.direction = direction
+                exit_x, exit_y = self.get_exit_position()
+                if (
+                    exit_x is not None
+                    and exit_y is not None
+                    and self.can_move_into(
+                        self.grid.grid[exit_x, exit_y], check_rotary=False
+                    )
+                ):
+                    possible_exits.append(direction)
+
+            # If no valid exits found, keep rotating
+            if not possible_exits:
+                rotate_x, rotate_y = self.rotate_rotary(x, y)
+                if (
+                    rotate_x is not None
+                    and self.grid.grid[rotate_x, rotate_y] == INTERSECTION_VALUE
+                ):
+                    self.grid.grid[x, y] = INTERSECTION_VALUE
+                    self.grid.grid[rotate_x, rotate_y] = CAR_VALUE
+                    self.position = (rotate_x, rotate_y)
                 return
 
-            # Rotate in the rotary if no exit
+            # Choose a random valid exit direction
+            self.exit_direction = random.choice(possible_exits)
+            self.direction = self.exit_direction
+
+        if f == 0:
+            # If not flagged, try to exit the rotary in the chosen direction
+            exit_x, exit_y = self.get_exit_position()
+
+            # First check if the exit position is valid and is a road
+            if (
+                exit_x is not None
+                and exit_y is not None
+                and self.can_move_into(
+                    self.grid.grid[exit_x, exit_y], check_rotary=False
+                )
+            ):
+                # Calculate base road position (start of the road segment)
+                base_x = (exit_x // (self.grid.lane_width * 2)) * (
+                    self.grid.lane_width * 2
+                )
+                base_y = (exit_y // (self.grid.lane_width * 2)) * (
+                    self.grid.lane_width * 2
+                )
+
+                # Calculate lane offset based on direction
+                if self.direction in ["N", "S"]:
+                    # For North/South roads
+                    lane_offset = (
+                        self.grid.lane_width - 1 if self.direction == "N" else 0
+                    )
+                    exit_x = exit_x  # Keep same x coordinate
+                    exit_y = base_y + lane_offset  # Adjust y for correct lane
+                else:
+                    # For East/West roads
+                    lane_offset = (
+                        self.grid.lane_width - 1 if self.direction == "E" else 0
+                    )
+                    exit_x = base_x + lane_offset  # Adjust x for correct lane
+                    exit_y = exit_y  # Keep same y coordinate
+
+                # Verify the calculated position is still a valid road
+                if self.can_move_into(
+                    self.grid.grid[exit_x, exit_y], check_rotary=False
+                ):
+                    # Move to the correct exit lane
+                    self.grid.grid[x, y] = INTERSECTION_VALUE
+                    self.grid.grid[exit_x, exit_y] = CAR_VALUE
+                    self.position = (exit_x, exit_y)
+                    self.in_rotary = False
+                    # Clear the exit direction as we've exited
+                    delattr(self, "exit_direction")
+                    return
+
+            # Rotate in the rotary if no valid exit
             rotate_x, rotate_y = self.rotate_rotary(x, y)
 
             # Check if next rotary cell is free
