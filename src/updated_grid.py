@@ -22,10 +22,10 @@ class Grid:
         #     self.grid[:, max(0, i - self.lane_width + 1):i + 1] = 1
         
         #Add lanes on the edges
-        self.grid[:self.lane_width, :] = 2
-        self.grid[-self.lane_width:, :] = 2
-        self.grid[:, :self.lane_width] = 2
-        self.grid[:, -self.lane_width:] = 2
+        # self.grid[:self.lane_width, :] = 2
+        # self.grid[-self.lane_width:, :] = 2
+        # self.grid[:, :self.lane_width] = 2
+        # self.grid[:, -self.lane_width:] = 2
 
         for col in range(0, self.size, self.blocks):
             left = col
@@ -73,8 +73,8 @@ class Grid:
 grid = Grid(25, 5, lane_width=2)
 
 cars = [
-    Car(grid, position=(10,0), direction='E'),
-    Car(grid, position=(15,0), direction='N')
+    Car(grid, position=(16,3), direction='E'),
+    Car(grid, position=(17,6), direction='N')
 ]
 
 
