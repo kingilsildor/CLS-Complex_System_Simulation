@@ -29,7 +29,6 @@ class Car:
         self.in_rotary = False
         self.flag = 0
 
-        # Check if the position is valid
         if not isinstance(position, tuple) or len(position) != 2:
             raise ValueError("Invalid position for the car.")
         if not all(isinstance(i, int) for i in position):

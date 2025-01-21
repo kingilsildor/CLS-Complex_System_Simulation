@@ -2,7 +2,6 @@ import tkinter as tk
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -10,9 +9,6 @@ from src.car import Car
 from src.grid import Grid
 from src.utils import (
     FILE_EXTENSION,
-    HORIZONTAL_ROAD_VALUE,
-    INTERSECTION_VALUE,
-    VERTICAL_ROAD_VALUE,
 )
 
 matplotlib.use("TkAgg")
@@ -131,6 +127,8 @@ class SimulationUI:
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
         )
+
+        # TODO add a function that handles this
         cars = [
             Car(self.grid, position=(16, 3), direction="E"),
             Car(self.grid, position=(17, 6), direction="N"),
@@ -194,20 +192,23 @@ class SimulationUI:
         --------
         list[Car]: A list of `Car` objects with random positions and directions.
         """
-        cars = np.zeros(car_count, dtype=object)
-        for i in range(car_count):
-            while self.grid.grid[
-                x := np.random.randint(0, self.grid.size),
-                y := np.random.randint(0, self.grid.size),
-            ] not in [VERTICAL_ROAD_VALUE, HORIZONTAL_ROAD_VALUE, INTERSECTION_VALUE]:
-                pass
 
-            dx = np.random.choice([-1, 0, 1])
-            dy = 0 if dx != 0 else np.random.choice([-1, 1])
+        # TODO update this to the new version of cars
+        # cars = np.zeros(car_count, dtype=object)
+        # for i in range(car_count):
+        #     while self.grid.grid[
+        #         x := np.random.randint(0, self.grid.size),
+        #         y := np.random.randint(0, self.grid.size),
+        #     ] not in [VERTICAL_ROAD_VALUE, HORIZONTAL_ROAD_VALUE, INTERSECTION_VALUE]:
+        #         pass
 
-            car = Car(self.grid, position=(x, y), direction=(dx, dy))
-            cars[i] = car
-        return cars
+        #     dx = np.random.choice([-1, 0, 1])
+        #     dy = 0 if dx != 0 else np.random.choice([-1, 1])
+
+        #     car = Car(self.grid, position=(x, y), direction=(dx, dy))
+        #     cars[i] = car
+
+        # return cars
 
     def run_simulation_without_ui(
         self,
@@ -231,7 +232,12 @@ class SimulationUI:
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
         )
-        cars = self.create_cars(car_count)
+        cars = cars = cars = [
+            Car(self.grid, position=(16, 3), direction="E"),
+            Car(self.grid, position=(17, 6), direction="N"),
+            Car(self.grid, position=(1, 1), direction="S"),
+            Car(self.grid, position=(17, 5), direction="N"),
+        ]
         self.grid.add_cars(cars)
 
         self.write_header()
