@@ -1,9 +1,9 @@
 import tkinter as tk
 
-from src.helper_classes import SimulationUI
+from src.simulation import SimulationUI
 
 if __name__ == "__main__":
-    show_ui = False  # Change to True to simulate with UI
+    show_ui = True  # Change to True to simulate with UI
     root = tk.Tk() if show_ui else None
     ui = SimulationUI(root, show_ui=show_ui)
 

@@ -5,7 +5,14 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from src.utils import BLOCKS_VALUE, CAR_VALUE, ROAD_VALUE, FILE_EXTENSION
+from src.car import Car
+from src.grid import Grid
+from src.utils import (
+    FILE_EXTENSION,
+    HORIZONTAL_ROAD_VALUE,
+    INTERSECTION_VALUE,
+    VERTICAL_ROAD_VALUE,
+)
 
 
 class SimulationUI:
@@ -124,7 +131,8 @@ class SimulationUI:
         self.write_simulation(frame)
 
         self.ax.clear()
-        self.ax.imshow(self.grid.grid, cmap="Greys", interpolation="nearest")
+        # self.ax.imshow(self.grid.grid, cmap="viridis", interpolation="nearest")
+        self.ax.imshow(self.grid.grid, cmap="Grays", interpolation="nearest")
         self.ax.set_title(f"Simulation step {frame + 1}")
 
         self.canvas.draw()
@@ -145,13 +153,10 @@ class SimulationUI:
         """Create a list of cars with random positions and directions"""
         cars = np.zeros(car_count, dtype=object)
         for i in range(car_count):
-            while (
-                self.grid.grid[
-                    x := np.random.randint(0, self.grid.size),
-                    y := np.random.randint(0, self.grid.size),
-                ]
-                != ROAD_VALUE
-            ):
+            while self.grid.grid[
+                x := np.random.randint(0, self.grid.size),
+                y := np.random.randint(0, self.grid.size),
+            ] not in [VERTICAL_ROAD_VALUE, HORIZONTAL_ROAD_VALUE, INTERSECTION_VALUE]:
                 pass
 
             dx = np.random.choice([-1, 0, 1])
@@ -185,9 +190,7 @@ class SimulationUI:
     def write_header(self):
         """Write the header to the simulation file"""
         with open(f"data/simulation.{FILE_EXTENSION}", "w") as f:
-            f.write(
-                "Step; Grid_State\n"
-            )
+            f.write("Step; Grid_State\n")
 
     def write_simulation(self, step: int):
         """Write the simulation to a file"""
@@ -195,67 +198,3 @@ class SimulationUI:
 
         with open(f"data/simulation.{FILE_EXTENSION}", "a") as f:
             f.write(f"{step}; {grid_state}\n")
-
-
-class Grid:
-    def __init__(self, grid_size: int, blocks_size: int, lane_width: int = 2):
-        self.grid = np.full((grid_size, grid_size), BLOCKS_VALUE, dtype=int)
-        self.size = grid_size
-        self.blocks = blocks_size
-        self.lane_width = lane_width
-        self.cars = []
-        self.roads()
-
-    def roads(self):
-        """Add roads to the grid"""
-        for i in range(0, self.size, self.blocks):
-            self.grid[max(0, i - self.lane_width + 1) : i + 1, :] = ROAD_VALUE
-            self.grid[:, max(0, i - self.lane_width + 1) : i + 1] = ROAD_VALUE
-
-        # Add lanes on the edges
-        self.grid[: self.lane_width, :] = ROAD_VALUE
-        self.grid[-self.lane_width :, :] = ROAD_VALUE
-        self.grid[:, : self.lane_width] = ROAD_VALUE
-        self.grid[:, -self.lane_width :] = ROAD_VALUE
-
-    def add_cars(self, cars: list):
-        """Add cars to the grid"""
-        self.cars.extend(cars)
-
-    def update_movement(self):
-        """Update the grid and move all cars"""
-        self.grid.fill(BLOCKS_VALUE)
-        self.roads()
-
-        for car in self.cars:
-            car.move(self)
-            x, y = car.position
-            self.grid[x, y] = CAR_VALUE
-
-
-class Car:
-    def __init__(self, position, direction, speed=1):
-        self.position = position
-        self.direction = direction
-        self.speed = speed
-
-    def move(self, grid):
-        """Move the car on the grid"""
-        new_x = self.position[0] + self.direction[0] * self.speed
-        new_y = self.position[1] + self.direction[1] * self.speed
-
-        if new_x < 0:
-            new_x = grid.size - 1
-        if new_x >= grid.size:
-            new_x = 0
-        if new_y < 0:
-            new_y = grid.size - 1
-        if new_y >= grid.size:
-            new_y = 0
-
-        try:
-            if grid.grid[new_x, new_y] != ROAD_VALUE:
-                raise ValueError("\033[38;5;214mCar is trying to move off-road.\033[0m")
-            self.position = (new_x, new_y)
-        except ValueError:
-            self.direction = (-self.direction[0], -self.direction[1])
