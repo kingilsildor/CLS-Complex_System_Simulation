@@ -13,7 +13,6 @@ if __name__ == "__main__":
             grid_size=60,
             blocks_size=10,
             lane_width=2,
-            car_speed=1,
             car_count=50,
         )
     else:

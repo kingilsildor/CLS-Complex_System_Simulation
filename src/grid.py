@@ -2,7 +2,6 @@ import numpy as np
 
 from src.utils import (
     BLOCKS_VALUE,
-    CAR_VALUE,
     HORIZONTAL_ROAD_VALUE,
     INTERSECTION_VALUE,
     VERTICAL_ROAD_VALUE,
@@ -26,10 +25,10 @@ class Grid:
         """
 
         # Add lanes on the edges
-        self.grid[: self.lane_width, :] = HORIZONTAL_ROAD_VALUE
-        self.grid[-self.lane_width :, :] = HORIZONTAL_ROAD_VALUE
-        self.grid[:, : self.lane_width] = HORIZONTAL_ROAD_VALUE
-        self.grid[:, -self.lane_width :] = HORIZONTAL_ROAD_VALUE
+        # self.grid[: self.lane_width, :] = HORIZONTAL_ROAD_VALUE
+        # self.grid[-self.lane_width :, :] = HORIZONTAL_ROAD_VALUE
+        # self.grid[:, : self.lane_width] = HORIZONTAL_ROAD_VALUE
+        # self.grid[:, -self.lane_width :] = HORIZONTAL_ROAD_VALUE
 
         self.create_vertical_lanes()
         self.create_horizontal_lanes()
@@ -77,6 +76,4 @@ class Grid:
         self.roads()
 
         for car in self.cars:
-            car.move(self)
-            x, y = car.position
-            self.grid[x, y] = CAR_VALUE
+            car.move_car()

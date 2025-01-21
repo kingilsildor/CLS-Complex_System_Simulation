@@ -31,10 +31,9 @@ class SimulationUI:
             self.steps_slider = self.create_slider("Steps", 50, 200, 100)
             self.frame_rate_slider = self.create_slider("Frame Rate", 1, 500, 40)
 
-            self.grid_size_slider = self.create_slider("Grid Size", 10, 1000, 60)
-            self.blocks_size_slider = self.create_slider("Blocks Size", 2, 50, 10)
+            self.grid_size_slider = self.create_slider("Grid Size", 10, 1000, 25)
+            self.blocks_size_slider = self.create_slider("Blocks Size", 2, 50, 5)
             self.lane_width_slider = self.create_slider("Lane Width", 2, 30, 2)
-            self.car_speed_slider = self.create_slider("Car Speed", 1, 5, 1)
             self.car_count_slider = self.create_slider("Car Count", 1, 10000, 10)
 
             self.start_button = tk.Button(
@@ -103,14 +102,18 @@ class SimulationUI:
         grid_size = self.grid_size_slider.get()
         blocks_size = self.blocks_size_slider.get()
         lane_width = self.lane_width_slider.get()
-        car_speed = self.car_speed_slider.get()
-        car_count = self.car_count_slider.get()
+        # car_count = self.car_count_slider.get()
 
         self.steps = 0
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
         )
-        cars = self.create_cars(car_count, car_speed)
+        cars = cars = [
+            Car(self.grid, position=(16, 3), direction="E"),
+            Car(self.grid, position=(17, 6), direction="N"),
+            Car(self.grid, position=(1, 1), direction="S"),
+            Car(self.grid, position=(17, 5), direction="N"),
+        ]
         self.grid.add_cars(cars)
 
         self.animation = FuncAnimation(
@@ -131,8 +134,8 @@ class SimulationUI:
         self.write_simulation(frame)
 
         self.ax.clear()
-        # self.ax.imshow(self.grid.grid, cmap="viridis", interpolation="nearest")
-        self.ax.imshow(self.grid.grid, cmap="Grays", interpolation="nearest")
+        self.ax.imshow(self.grid.grid, cmap="viridis", interpolation="nearest")
+        # self.ax.imshow(self.grid.grid, cmap="Grays", interpolation="nearest")
         self.ax.set_title(f"Simulation step {frame + 1}")
 
         self.canvas.draw()
@@ -149,8 +152,9 @@ class SimulationUI:
             self.animation.event_source.start()
             print("Simulation resumed.")
 
-    def create_cars(self, car_count: int, car_speed: int) -> list:
+    def create_cars(self, car_count: int) -> list:
         """Create a list of cars with random positions and directions"""
+        # TODO make it so that these cars are placed in a more sensible way following the road rules
         cars = np.zeros(car_count, dtype=object)
         for i in range(car_count):
             while self.grid.grid[
@@ -162,7 +166,7 @@ class SimulationUI:
             dx = np.random.choice([-1, 0, 1])
             dy = 0 if dx != 0 else np.random.choice([-1, 1])
 
-            car = Car(position=(x, y), direction=(dx, dy), speed=car_speed)
+            car = Car(self.grid, position=(x, y), direction=(dx, dy))
             cars[i] = car
         return cars
 
@@ -172,14 +176,13 @@ class SimulationUI:
         grid_size: int,
         blocks_size: int,
         lane_width: int,
-        car_speed: int,
         car_count: int,
     ):
         """Run the simulation without showing the UI and return the grid states"""
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
         )
-        cars = self.create_cars(car_count, car_speed)
+        cars = self.create_cars(car_count)
         self.grid.add_cars(cars)
 
         self.write_header()
