@@ -30,9 +30,9 @@ class Car:
         self.flag = 0
 
         if not isinstance(position, tuple) or len(position) != 2:
-            raise ValueError("Invalid position for the car.")
+            raise ValueError("\033[91mInvalid position for the car.\033[0m")
         if not all(isinstance(i, int) for i in position):
-            raise ValueError("Position coordinates must be integers.")
+            raise ValueError("\033[91mPosition coordinates must be integers.\033[0m")
 
         x, y = position
         if self.grid.grid[x, y] not in [
@@ -40,14 +40,14 @@ class Car:
             HORIZONTAL_ROAD_VALUE,
             INTERSECTION_VALUE,
         ]:
-            raise ValueError("Invalid starting position for the car.")
+            raise ValueError("\033[91mInvalid starting position for the car.\033[0m")
         else:
             self.grid.grid[x, y] = CAR_VALUE
         self.position = position
 
         # Check if the direction is valid
         if direction not in ["N", "S", "E", "W"]:
-            raise ValueError("Invalid direction for the car.")
+            raise ValueError("\033[91mInvalid direction for the car.\033[0m")
         self.direction = direction
 
     def can_move_into(self, cell_code: int, check_rotary: bool = True) -> bool:
