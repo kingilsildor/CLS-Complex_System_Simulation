@@ -1,5 +1,6 @@
 import tkinter as tk
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
@@ -14,9 +15,19 @@ from src.utils import (
     VERTICAL_ROAD_VALUE,
 )
 
+matplotlib.use("TkAgg")
+
 
 class SimulationUI:
     def __init__(self, master: tk.Tk, show_ui: bool = True):
+        """
+        Initialize the simulation UI for controlling and visualizing the car traffic simulation.
+
+        Params:
+        -------
+        master (tk.Tk): The root window for the Tkinter application.
+        show_ui (bool): Flag to show the UI. Default is True.
+        """
         self.show_ui = show_ui
         self.master = master
         self.is_paused = False
@@ -30,7 +41,6 @@ class SimulationUI:
 
             self.steps_slider = self.create_slider("Steps", 50, 200, 100)
             self.frame_rate_slider = self.create_slider("Frame Rate", 1, 500, 40)
-
             self.grid_size_slider = self.create_slider("Grid Size", 10, 1000, 25)
             self.blocks_size_slider = self.create_slider("Blocks Size", 2, 50, 5)
             self.lane_width_slider = self.create_slider("Lane Width", 2, 30, 2)
@@ -68,8 +78,21 @@ class SimulationUI:
         min_val: int | float,
         max_val: int | float,
         default_val: int | float,
-    ):
-        """Create a slider with a label"""
+    ) -> tk.Scale:
+        """
+        Create a slider widget with a label.
+
+        Params:
+        -------
+        label (str): The label for the slider.
+        min_val (int | float): The minimum value of the slider.
+        max_val (int | float): The maximum value of the slider.
+        default_val (int | float): The default value of the slider.
+
+        Returns:
+        --------
+        tk.Scale: The created slider widget.
+        """
         frame = tk.Frame(self.controls_frame)
         frame.pack(pady=5)
 
@@ -86,8 +109,9 @@ class SimulationUI:
 
     def start_simulation(self):
         """
-        Start the simulation with the parameters from the sliders
-        Can also restart if previous simulation is running.
+        Start the simulation based on the parameters from the UI sliders.
+
+        If a simulation is already running, it restarts the simulation.
         """
         # Restart the simulation
         if self.animation:
@@ -102,13 +126,12 @@ class SimulationUI:
         grid_size = self.grid_size_slider.get()
         blocks_size = self.blocks_size_slider.get()
         lane_width = self.lane_width_slider.get()
-        # car_count = self.car_count_slider.get()
 
         self.steps = 0
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
         )
-        cars = cars = [
+        cars = [
             Car(self.grid, position=(16, 3), direction="E"),
             Car(self.grid, position=(17, 6), direction="N"),
             Car(self.grid, position=(1, 1), direction="S"),
@@ -126,7 +149,13 @@ class SimulationUI:
         self.canvas.draw()
 
     def update_simulation(self, frame: int):
-        """Update the simulation"""
+        """
+        Update the simulation for the given frame.
+
+        Params:
+        -------
+        frame (int): The current frame number in the simulation.
+        """
         if self.is_paused:
             return
 
@@ -135,13 +164,14 @@ class SimulationUI:
 
         self.ax.clear()
         self.ax.imshow(self.grid.grid, cmap="viridis", interpolation="nearest")
-        # self.ax.imshow(self.grid.grid, cmap="Grays", interpolation="nearest")
         self.ax.set_title(f"Simulation step {frame + 1}")
 
         self.canvas.draw()
 
     def pause_simulation(self):
-        """Pause the simulation"""
+        """
+        Pause or resume the simulation.
+        """
         if self.animation and not self.is_paused:
             self.is_paused = True
             self.animation.event_source.stop()
@@ -152,9 +182,18 @@ class SimulationUI:
             self.animation.event_source.start()
             print("Simulation resumed.")
 
-    def create_cars(self, car_count: int) -> list:
-        """Create a list of cars with random positions and directions"""
-        # TODO make it so that these cars are placed in a more sensible way following the road rules
+    def create_cars(self, car_count: int) -> list[Car]:
+        """
+        Create a list of cars with random positions and directions.
+
+        Params:
+        -------
+        car_count (int): The number of cars to create.
+
+        Returns:
+        --------
+        list[Car]: A list of `Car` objects with random positions and directions.
+        """
         cars = np.zeros(car_count, dtype=object)
         for i in range(car_count):
             while self.grid.grid[
@@ -178,7 +217,17 @@ class SimulationUI:
         lane_width: int,
         car_count: int,
     ):
-        """Run the simulation without showing the UI and return the grid states"""
+        """
+        Run the simulation without displaying the UI and return the grid states.
+
+        Params:
+        -------
+        steps (int): The number of steps to run the simulation.
+        grid_size (int): The size of the grid (NxN).
+        blocks_size (int): The size of blocks between roads.
+        lane_width (int): The width of the lanes.
+        car_count (int): The number of cars to simulate.
+        """
         self.grid = Grid(
             grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
         )
@@ -191,12 +240,20 @@ class SimulationUI:
             self.write_simulation(step)
 
     def write_header(self):
-        """Write the header to the simulation file"""
+        """
+        Write the header to the simulation output file.
+        """
         with open(f"data/simulation.{FILE_EXTENSION}", "w") as f:
             f.write("Step; Grid_State\n")
 
     def write_simulation(self, step: int):
-        """Write the simulation to a file"""
+        """
+        Write the current simulation step to the output file.
+
+        Params:
+        -------
+        step (int): The current step number in the simulation.
+        """
         grid_state = str(self.grid.grid.tolist())
 
         with open(f"data/simulation.{FILE_EXTENSION}", "a") as f:
