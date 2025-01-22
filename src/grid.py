@@ -49,6 +49,7 @@ class Grid:
         self.rotary_dict = []
         self.flag = np.zeros((grid_size, grid_size), dtype=int)
         self.roads()
+
         # Store the road layout
         self.road_layout = self.grid.copy()
 
@@ -73,7 +74,10 @@ class Grid:
         """
         Create vertical roads at regular intervals based on block size.
         """
-        for col in range(int(self.blocks / 2), self.size, self.blocks):
+        half_block = self.blocks // 2
+        assert isinstance(half_block, int)
+
+        for col in range(half_block, self.size, self.blocks):
             left = col
             right = min(col + self.lane_width, self.size)
             for x in range(self.size):
@@ -85,7 +89,10 @@ class Grid:
         """
         Create horizontal roads at regular intervals based on block size.
         """
-        for row in range(int(self.blocks / 2), self.size, self.blocks):
+        half_block = self.blocks // 2
+        assert isinstance(half_block, int)
+
+        for row in range(half_block, self.size, self.blocks):
             top = row
             bottom = min(row + self.lane_width, self.size)
             for x in range(top, bottom):
@@ -98,16 +105,18 @@ class Grid:
         Create intersections where vertical and horizontal roads meet.
         Intersections are designed as 2x2 rotary spaces to facilitate smooth traffic flow.
         """
-        for i in range(int(self.blocks / 2), self.size, self.blocks):
-            for j in range(int(self.blocks / 2), self.size, self.blocks):
-                x0 = i
-                x1 = i + self.lane_width
-                y0 = j
-                y1 = j + self.lane_width
+        half_block = self.blocks // 2
+        assert isinstance(half_block, int)
+
+        for i in range(half_block, self.size, self.blocks):
+            for j in range(half_block, self.size, self.blocks):
+                x0, x1 = i, i + self.lane_width
+                y0, y1 = j, j + self.lane_width
 
                 self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
+                assert isinstance(ring, list)
                 self.rotary_dict.append(ring)
 
     def add_cars(self, cars: list):

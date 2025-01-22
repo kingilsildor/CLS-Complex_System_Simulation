@@ -86,7 +86,7 @@ class Car:
         if not self.in_rotary:
             new_x, new_y = self.next_position(*self.position)
             if new_x is None or new_y is None:
-                self.move_boundary()
+                self.move_boundary(new_x, new_y)
                 return
 
             next_code = self.grid.grid[new_x, new_y]
@@ -217,12 +217,18 @@ class Car:
         Move the car to the opposite side of the grid when it reaches a boundary.
         For vertical movement (N/S), it wraps around vertically.
         For horizontal movement (E/W), it wraps around horizontally.
+
+        Params:
+        - new_x (int): The new x-coordinate of the car.
+        - new_y (int): The new y-coordinate of the car.
+
+        Returns:
+        - tuple: The new position of the car (x, y).
         """
         x, y = self.position
         old_code = self.road_code_for_direction()
         self.grid.grid[x, y] = old_code
 
-        # Calculate new position based on direction
         if self.direction == "N":
             # Move to the bottom of the grid
             new_x = self.grid.size - 1
