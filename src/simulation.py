@@ -12,7 +12,6 @@ from src.car import Car
 from src.density import DensityTracker
 from src.grid import Grid
 from src.utils import (
-    CAR_VALUE,
     FILE_EXTENSION,
     HORIZONTAL_ROAD_VALUE,
     INTERSECTION_VALUE,
@@ -27,7 +26,7 @@ class SimulationUI:
         self,
         master: tk.Tk,
         show_ui: bool = True,
-        colour_blind: bool = False,
+        colour_blind: bool = True,
         drive_on_right: bool = True,
     ):
         """
@@ -83,6 +82,10 @@ class SimulationUI:
         self.ax.set_yticks([])
         self.fig.tight_layout()
         self.fig.subplots_adjust(top=0.85)  # Make more room for title
+
+        # Titel
+        title = "Welcome to SimCity 2000"
+        self.ax.set_title(title)
 
         self.canvas.draw()
 
@@ -226,9 +229,6 @@ class SimulationUI:
         self.ax.set_xticks([])
         self.ax.set_yticks([])
 
-        # Update title text
-        self.ax.set_title(f"Step: {0}\nCars: {car_count}")
-
         self.canvas.draw()
 
         # Update button states
@@ -239,19 +239,14 @@ class SimulationUI:
         self.animation = FuncAnimation(
             self.fig,
             self.update_simulation,
-            init_func=self.init_animation,
             frames=range(steps),
-            interval=max(frame_rate, 20),  # Minimum 20ms interval
-            blit=True,
+            interval=frame_rate,
             repeat=False,
         )
+        self.canvas.draw()
 
         # Keep a reference to prevent garbage collection
         self._animation_ref = self.animation
-
-    def init_animation(self):
-        """Initialize the animation"""
-        return [self.im, self.title]
 
     def update_simulation(self, frame: int):
         """
@@ -265,25 +260,17 @@ class SimulationUI:
             return [self.im, self.title]
 
         self.grid.update_movement()
-
-        # Only calculate total cars, skip other density metrics
-        car_positions = np.where(self.grid.grid == CAR_VALUE)
-        total_cars = len(car_positions[0])
+        density_metrics = self.density_tracker.calculate_overall_density()
 
         # Update the image data and title
         self.im.set_array(self.grid.grid)
-        self.title_text = f"Step: {frame + 1}\nCars: {total_cars}"
-        self.title = self.ax.text(
-            0.5,
-            1.05,
-            self.title_text,
-            fontsize=12,
-            ha="center",
-            va="bottom",
-            transform=self.ax.transAxes,
-        )
 
-        return [self.im, self.title]
+        # Update title with all density metrics
+        title = f"Simulation step {frame + 1}\n"
+        title += f"Cars: {density_metrics['total_cars']}"
+        self.ax.set_title(title)
+
+        self.canvas.draw()
 
     def pause_simulation(self):
         """
@@ -429,17 +416,6 @@ class SimulationUI:
             self.ax.set_xticks([])
             self.ax.set_yticks([])
 
-            # Reset title
-            self.title_text = "Simulation Reset"
-            self.title = self.ax.text(
-                0.5,
-                1.05,
-                self.title_text,
-                fontsize=12,
-                ha="center",
-                va="bottom",
-                transform=self.ax.transAxes,
-            )
             self.canvas.draw()
 
         # Reset simulation state
