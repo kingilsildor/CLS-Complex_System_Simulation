@@ -3,10 +3,14 @@ import numpy as np
 # import test_case as test_case
 from src.utils import (
     BLOCKS_VALUE,
-    HORIZONTAL_ROAD_VALUE,
+    HORIZONTAL_ROAD_VALUE_LEFT,
+    HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_VALUE,
-    VERTICAL_ROAD_VALUE,
+    VERTICAL_ROAD_VALUE_LEFT,
+    VERTICAL_ROAD_VALUE_RIGHT,
 )
+
+temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
 
 
 class Grid:
@@ -65,10 +69,10 @@ class Grid:
         """
         Create lanes along the edges of the grid, ensuring connectivity.
         """
-        self.grid[: self.lane_width, :] = HORIZONTAL_ROAD_VALUE
-        self.grid[-self.lane_width :, :] = HORIZONTAL_ROAD_VALUE
-        self.grid[:, : self.lane_width] = HORIZONTAL_ROAD_VALUE
-        self.grid[:, -self.lane_width :] = HORIZONTAL_ROAD_VALUE
+        self.grid[: self.lane_width, :] = HORIZONTAL_ROAD_VALUE_RIGHT
+        self.grid[-self.lane_width :, :] = HORIZONTAL_ROAD_VALUE_RIGHT
+        self.grid[:, : self.lane_width] = HORIZONTAL_ROAD_VALUE_RIGHT
+        self.grid[:, -self.lane_width :] = HORIZONTAL_ROAD_VALUE_RIGHT
 
     def create_vertical_lanes(self):
         """
@@ -83,7 +87,11 @@ class Grid:
             for x in range(self.size):
                 for y in range(left, right):
                     if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = VERTICAL_ROAD_VALUE
+                        self.grid[x, y] = (
+                            VERTICAL_ROAD_VALUE_RIGHT
+                            if y % 2 == 0
+                            else VERTICAL_ROAD_VALUE_LEFT
+                        )
 
     def create_horizontal_lanes(self):
         """
@@ -98,7 +106,11 @@ class Grid:
             for x in range(top, bottom):
                 for y in range(self.size):
                     if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = HORIZONTAL_ROAD_VALUE
+                        self.grid[x, y] = (
+                            HORIZONTAL_ROAD_VALUE_RIGHT
+                            if x % 2 == 0
+                            else HORIZONTAL_ROAD_VALUE_LEFT
+                        )
 
     def create_intersections(self):
         """
@@ -137,4 +149,4 @@ class Grid:
         self.grid = self.road_layout.copy()
 
         for car in self.cars:
-            car.move_car()
+            car.move()

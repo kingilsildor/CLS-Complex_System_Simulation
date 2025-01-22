@@ -10,12 +10,8 @@ from src.density import DensityTracker
 from src.grid import Grid
 from src.utils import (
     FILE_EXTENSION,
-    HORIZONTAL_ROAD_VALUE,
-    INTERSECTION_VALUE,
-    VERTICAL_ROAD_VALUE,
+    ROAD_CELLS,
 )
-
-plt.ion()
 
 
 class SimulationUI:
@@ -218,7 +214,7 @@ class SimulationUI:
             """
             self.ax.clear()
             self.fig.subplots_adjust(top=0.85)
-            cmap = "Greys" if self.colour_blind else "tab20c_r"
+            cmap = "Greys" if self.colour_blind else "rainbow"
             self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
             self.ax.set_xticks([])
             self.ax.set_yticks([])
@@ -330,14 +326,16 @@ class SimulationUI:
         """
         cars = np.zeros(car_count, dtype=object)
         for i in range(car_count):
-            while self.grid.grid[
-                x := np.random.randint(0, self.grid.size),
-                y := np.random.randint(0, self.grid.size),
-            ] not in [VERTICAL_ROAD_VALUE, HORIZONTAL_ROAD_VALUE, INTERSECTION_VALUE]:
+            while (
+                self.grid.grid[
+                    x := np.random.randint(0, self.grid.size),
+                    y := np.random.randint(0, self.grid.size),
+                ]
+                not in ROAD_CELLS
+            ):
                 pass
 
-            direction = np.random.choice(["N", "S", "E", "W"])
-            car = Car(self.grid, position=(x, y), direction=direction)
+            car = Car(self.grid, position=(x, y))
             assert isinstance(car, Car)
             cars[i] = car
 

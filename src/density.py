@@ -1,9 +1,10 @@
 import numpy as np
+
 from src.utils import (
     CAR_VALUE,
-    VERTICAL_ROAD_VALUE,
-    HORIZONTAL_ROAD_VALUE,
+    HORIZONTAL_ROAD_VALUE_LEFT,
     INTERSECTION_VALUE,
+    VERTICAL_ROAD_VALUE_RIGHT,
 )
 
 
@@ -38,8 +39,8 @@ class DensityTracker:
         float : Percentage of road cells occupied by cars (0-1)
         """
         # Get all road cells (excluding intersections)
-        road_mask = (self.grid.underlying_grid == VERTICAL_ROAD_VALUE) | (
-            self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE
+        road_mask = (self.grid.underlying_grid == VERTICAL_ROAD_VALUE_RIGHT) | (
+            self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE_LEFT
         )
         total_road_cells = np.sum(road_mask)
 
@@ -50,8 +51,8 @@ class DensityTracker:
         # Check each car's position against the underlying grid
         for x, y in zip(*car_positions):
             if (
-                self.grid.underlying_grid[x, y] == VERTICAL_ROAD_VALUE
-                or self.grid.underlying_grid[x, y] == HORIZONTAL_ROAD_VALUE
+                self.grid.underlying_grid[x, y] == VERTICAL_ROAD_VALUE_RIGHT
+                or self.grid.underlying_grid[x, y] == HORIZONTAL_ROAD_VALUE_LEFT
             ):
                 cars_on_roads += 1
 
@@ -94,8 +95,8 @@ class DensityTracker:
         """
         # Create mask for all valid positions (roads + intersections)
         system_mask = (
-            (self.grid.underlying_grid == VERTICAL_ROAD_VALUE)
-            | (self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE)
+            (self.grid.underlying_grid == VERTICAL_ROAD_VALUE_RIGHT)
+            | (self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE_LEFT)
             | (self.grid.underlying_grid == INTERSECTION_VALUE)
         )
         total_system_cells = np.sum(system_mask)
