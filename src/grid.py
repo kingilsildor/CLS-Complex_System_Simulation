@@ -8,6 +8,14 @@ from src.utils import (
     VERTICAL_ROAD_VALUE,
 )
 
+# Add new constants for vertical_up and vertical_down lanes
+VERTICAL_UP_LANE_VALUE = 6
+VERTICAL_DOWN_LANE_VALUE = 7
+
+# Add new constants for horizontal_left and horizontal_right lanes
+HORIZONTAL_LEFT_LANE_VALUE = 8
+HORIZONTAL_RIGHT_LANE_VALUE = 9
+
 
 class Grid:
     """
@@ -79,7 +87,13 @@ class Grid:
             for x in range(self.size):
                 for y in range(left, right):
                     if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = VERTICAL_ROAD_VALUE
+                        if y == right - 1:  # Right lane
+                            if x % 2 == 0:
+                                self.grid[x, y] = VERTICAL_UP_LANE_VALUE
+                            else:
+                                self.grid[x, y] = VERTICAL_DOWN_LANE_VALUE
+                        else:
+                            self.grid[x, y] = VERTICAL_ROAD_VALUE
                         self.underlying_grid[x, y] = VERTICAL_ROAD_VALUE
 
     def create_horizontal_lanes(self):
@@ -92,7 +106,13 @@ class Grid:
             for x in range(top, bottom):
                 for y in range(self.size):
                     if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = HORIZONTAL_ROAD_VALUE
+                        if x == bottom - 1:  # Bottom lane
+                            if y % 2 == 0:
+                                self.grid[x, y] = HORIZONTAL_LEFT_LANE_VALUE
+                            else:
+                                self.grid[x, y] = HORIZONTAL_RIGHT_LANE_VALUE
+                        else:
+                            self.grid[x, y] = HORIZONTAL_ROAD_VALUE
                         self.underlying_grid[x, y] = HORIZONTAL_ROAD_VALUE
 
     def create_intersections(self):

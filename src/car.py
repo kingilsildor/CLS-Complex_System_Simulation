@@ -63,6 +63,9 @@ class Car:
         --------
         - bool: True if the car can move into the cell, False otherwise.
         """
+        if cell_code == CAR_VALUE:
+            return False
+
         if self.direction in ["N", "S"]:
             allowed = [VERTICAL_ROAD_VALUE]
             if check_rotary:
@@ -91,10 +94,16 @@ class Car:
 
             next_code = self.grid.grid[new_x, new_y]
 
-            if next_code == INTERSECTION_VALUE:
+            if next_code == CAR_VALUE:
+                # If there's a car in the next position, stay in current position
+                self.grid.grid[self.position] = CAR_VALUE
+            elif next_code == INTERSECTION_VALUE:
                 self.enter_rotary(new_x, new_y)
             elif self.can_move_into(next_code, check_rotary=False):
-                self.move_to(new_x, new_y, old_code=self.road_code_for_direction())
+                self.move_to(new_x, new_y, road_code=self.road_code_for_direction())
+            else:
+                print("Car cannot move into", next_code)
+
         else:
             self.move_rotary()
 
@@ -240,9 +249,17 @@ class Car:
             new_x = x
             new_y = self.grid.size - 1
 
-        if self.can_move_into(self.grid.grid[new_x, new_y], check_rotary=False):
+        # Check if the target position is occupied
+        if (
+            self.can_move_into(self.grid.grid[new_x, new_y], check_rotary=False)
+            and self.grid.grid[new_x, new_y] != CAR_VALUE
+        ):
             self.grid.grid[new_x, new_y] = CAR_VALUE
             self.position = (new_x, new_y)
+        else:
+            # Stay in current position if target is occupied
+            self.grid.grid[x, y] = CAR_VALUE
+            self.position = (x, y)
 
     def right_of_way(self):
         """
@@ -256,7 +273,7 @@ class Car:
         """
         pass  # TODO
 
-    def move_to(self, new_x: int, new_y: int, old_code: int):
+    def move_to(self, new_x: int, new_y: int, road_code: int):
         """
         Move the car to a new position on the grid.
 
@@ -267,7 +284,7 @@ class Car:
         - old_code (int): The code of the previous road the car was on.
         """
         x, y = self.position
-        self.grid.grid[x, y] = old_code
+        self.grid.grid[x, y] = road_code
         self.grid.grid[new_x, new_y] = CAR_VALUE
         self.position = (new_x, new_y)
 
