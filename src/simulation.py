@@ -13,7 +13,6 @@ from src.utils import (
     FILE_EXTENSION,
     HORIZONTAL_ROAD_VALUE,
     VERTICAL_ROAD_VALUE,
-    CAR_VALUE,
     INTERSECTION_VALUE,
 )
 
@@ -43,7 +42,6 @@ class SimulationUI:
         self.is_paused = False
         self.steps = 0
         self.colour_blind = colour_blind
-        self.drive_on_right = drive_on_right
         self.density_tracker = None
 
         def init_sliders():
@@ -196,7 +194,7 @@ class SimulationUI:
         self.density_tracker = DensityTracker(self.grid)
 
         car_count = self.car_count_slider.get()
-        cars = self.create_cars(car_count, self.drive_on_right)
+        cars = self.create_cars(car_count)
         self.grid.add_cars(cars)
 
         # Update button states
@@ -263,95 +261,26 @@ class SimulationUI:
             self.pause_button.config(text="Pause Simulation")
             print("\033[1;33mSimulation resumed.\033[0m")
 
-    def create_cars(self, car_count: int, drive_on_right: bool = True) -> list[Car]:
+    def create_cars(self, car_count: int) -> list[Car]:
         """
-        Create a list of cars with positions and directions based on traffic rules.
+         Create a list of cars with positions and directions based on traffic rules.
         Cars will drive on the right side by default. Cars will only spawn on regular road cells,
         not on intersections or rotaries. For vertical roads, right lane goes up and left lane
         goes down. For horizontal roads, upper lane goes right and lower lane goes left.
-
-        Params:
-        -------
         car_count (int): Number of cars to create
         drive_on_right (bool): If True, cars drive on the right side. If False, left side.
         """
-        cars = []
-        created_positions = set()
+        cars = np.zeros(car_count, dtype=object)
+        for i in range(car_count):
+            while self.grid.grid[
+                x := np.random.randint(0, self.grid.size),
+                y := np.random.randint(0, self.grid.size),
+            ] not in [VERTICAL_ROAD_VALUE, HORIZONTAL_ROAD_VALUE, INTERSECTION_VALUE]:
+                pass
 
-        # Get all valid positions and their directions based on road position
-        valid_positions = []
-        for x in range(self.grid.size):
-            for y in range(self.grid.size):
-                cell = self.grid.grid[x, y]
-                if cell == VERTICAL_ROAD_VALUE:
-                    # For vertical roads:
-                    # Right lane (higher y) goes North, Left lane goes South
-                    lane_index = y % (
-                        self.grid.lane_width * 2
-                    )  # Position within the road
-                    if drive_on_right:
-                        # Right side of road (higher y) goes up
-                        direction = "N" if lane_index >= self.grid.lane_width else "S"
-                    else:
-                        # Left side of road (lower y) goes up
-                        direction = "S" if lane_index >= self.grid.lane_width else "N"
-                    valid_positions.append((x, y, [direction]))
-
-                elif cell == HORIZONTAL_ROAD_VALUE:
-                    # For horizontal roads:
-                    # Upper lane (lower x) goes East, Lower lane goes West
-                    lane_index = x % (
-                        self.grid.lane_width * 2
-                    )  # Position within the road
-                    if drive_on_right:
-                        # Upper part of road (lower x) goes right
-                        direction = "E" if lane_index < self.grid.lane_width else "W"
-                    else:
-                        # Upper part of road (lower x) goes left
-                        direction = "W" if lane_index < self.grid.lane_width else "E"
-                    valid_positions.append((x, y, [direction]))
-
-        # Shuffle valid positions
-        np.random.shuffle(valid_positions)
-
-        # Place cars up to either car_count or available positions
-        actual_count = min(car_count, len(valid_positions))
-
-        print("\033[1;36mPlacing cars:")
-        print(f"Requested cars: {car_count}")
-        print(f"Available positions: {len(valid_positions)}")
-        print(f"Cars to be placed: {actual_count}\033[0m")
-
-        for i in range(actual_count):
-            x, y, valid_directions = valid_positions[i]
-            direction = valid_directions[0]  # Only one valid direction per position now
-
-            # Skip if position is already occupied or is an intersection
-            if (
-                self.grid.grid[x, y] == CAR_VALUE
-                or self.grid.grid[x, y] == INTERSECTION_VALUE
-            ):
-                print(f"\033[1;31mWarning: Position ({x}, {y}) is not available\033[0m")
-                continue
-
-            # Create and verify car
-            car = Car(self.grid, position=(x, y), direction=direction)
-            if self.grid.grid[x, y] != CAR_VALUE:
-                print(
-                    f"\033[1;31mWarning: Car not placed at ({x}, {y}). Cell value: {self.grid.grid[x, y]}\033[0m"
-                )
-                continue
-
-            cars.append(car)
-            created_positions.add((x, y))
-
-        # Verify final state
-        car_positions = np.where(self.grid.grid == CAR_VALUE)
-        actual_cars = len(car_positions[0])
-        print("\033[1;32mCar placement complete:")
-        print(f"Cars placed: {len(created_positions)}")
-        print(f"Cars in grid: {actual_cars}\033[0m")
-
+            direction = np.random.choice(["N", "S", "E", "W"])
+            cars[i] = Car(self.grid, position=(x, y), direction=direction)
+        print(f"\033[38;5;46mCreated {car_count} cars.\033[0m")
         return cars
 
     def run_simulation_without_ui(
@@ -370,7 +299,7 @@ class SimulationUI:
         self.density_tracker = DensityTracker(self.grid)
 
         # Place cars
-        cars = self.create_cars(car_count, self.drive_on_right)
+        cars = self.create_cars(car_count)
         self.grid.add_cars(cars)
 
         # Run simulation steps

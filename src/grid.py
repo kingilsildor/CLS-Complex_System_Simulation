@@ -6,7 +6,6 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE,
     INTERSECTION_VALUE,
     VERTICAL_ROAD_VALUE,
-    CAR_VALUE,
 )
 
 
@@ -39,12 +38,12 @@ class Grid:
         try:
             if lane_width % 2 != 0:
                 raise ValueError(
-                    "\033[1;31mNumber of lanes must be an even number.\033[0m"
+                    "\033[38;5;214mNumber of lanes must be an even number.\033[0m"
                 )
             self.lane_width = lane_width
         except ValueError:
             self.lane_width = lane_width + 1
-            print(f"\033[1;33mSetting lane width to {self.lane_width}.\033[0m")
+            print(f"\033[38;5;214mSetting lane width to {self.lane_width}.\033[0m")
 
         self.cars = []
         self.rotary_dict = []
@@ -58,9 +57,6 @@ class Grid:
         self.create_vertical_lanes()
         self.create_horizontal_lanes()
         self.create_intersections()
-        self.create_outer_rotaries()
-        # Copy road layout to underlying grid
-        np.copyto(self.underlying_grid, self.grid)
 
     def create_edge_lanes(self):
         """
@@ -112,50 +108,6 @@ class Grid:
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 self.rotary_dict.append(ring)
 
-    def create_outer_rotaries(self):
-        """
-        Create rotaries at the outer roads (ring road intersections).
-        """
-        # Top and bottom rows
-        for j in range(0, self.size, self.blocks):
-            # Skip if we're at the edge of the grid
-            if j + self.lane_width > self.size:
-                continue
-
-            # Top row
-            x0, y0 = 0, j
-            x1, y1 = self.lane_width, j + self.lane_width
-            self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
-            ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
-            self.rotary_dict.append(ring)
-
-            # Bottom row
-            x0, y0 = self.size - self.lane_width, j
-            x1, y1 = self.size, j + self.lane_width
-            self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
-            ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
-            self.rotary_dict.append(ring)
-
-        # Left and right columns
-        for i in range(0, self.size, self.blocks):
-            # Skip if we're at the edge of the grid
-            if i + self.lane_width > self.size:
-                continue
-
-            # Left column
-            x0, y0 = i, 0
-            x1, y1 = i + self.lane_width, self.lane_width
-            self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
-            ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
-            self.rotary_dict.append(ring)
-
-            # Right column
-            x0, y0 = i, self.size - self.lane_width
-            x1, y1 = i + self.lane_width, self.size
-            self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
-            ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
-            self.rotary_dict.append(ring)
-
     def add_cars(self, cars: list):
         """
         Add cars to the grid.
@@ -172,18 +124,8 @@ class Grid:
 
         The grid is reset, roads are redrawn, and each car's position is updated.
         """
-        # Move cars first - this allows them to be removed if they exit
-        for car in self.cars[:]:  # Create a copy of the list to safely remove items
-            car.move_car()
-
-        # Reset grid and roads
         self.grid.fill(BLOCKS_VALUE)
         self.roads()
 
-        # Store the current road layout
-        np.copyto(self.underlying_grid, self.grid)
-
-        # Update grid with current car positions
         for car in self.cars:
-            x, y = car.position
-            self.grid[x, y] = CAR_VALUE
+            car.move_car()
