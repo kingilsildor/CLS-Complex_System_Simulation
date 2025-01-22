@@ -80,6 +80,7 @@ class Grid:
                 for y in range(left, right):
                     if self.grid[x, y] == BLOCKS_VALUE:
                         self.grid[x, y] = VERTICAL_ROAD_VALUE
+                        self.underlying_grid[x, y] = VERTICAL_ROAD_VALUE
 
     def create_horizontal_lanes(self):
         """
@@ -92,6 +93,7 @@ class Grid:
                 for y in range(self.size):
                     if self.grid[x, y] == BLOCKS_VALUE:
                         self.grid[x, y] = HORIZONTAL_ROAD_VALUE
+                        self.underlying_grid[x, y] = HORIZONTAL_ROAD_VALUE
 
     def create_intersections(self):
         """
@@ -106,6 +108,7 @@ class Grid:
                 y1 = j + self.lane_width
 
                 self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
+                self.underlying_grid[x0:x1, y0:y1] = INTERSECTION_VALUE
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 self.rotary_dict.append(ring)

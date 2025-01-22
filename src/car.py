@@ -243,9 +243,6 @@ class Car:
         if self.can_move_into(self.grid.grid[new_x, new_y], check_rotary=False):
             self.grid.grid[new_x, new_y] = CAR_VALUE
             self.position = (new_x, new_y)
-        else:
-            # If can't wrap around, just remove the car
-            self.grid.cars.remove(self)
 
     def right_of_way(self):
         """

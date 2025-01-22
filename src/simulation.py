@@ -299,7 +299,6 @@ class SimulationUI:
         not on intersections or rotaries. For vertical roads, right lane goes up and left lane
         goes down. For horizontal roads, upper lane goes right and lower lane goes left.
         car_count (int): Number of cars to create
-        drive_on_right (bool): If True, cars drive on the right side. If False, left side.
         """
         cars = np.zeros(car_count, dtype=object)
         for i in range(car_count):
