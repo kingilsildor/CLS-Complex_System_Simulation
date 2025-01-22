@@ -5,39 +5,73 @@ import tkinter as tk
 from models.nagel_schreckenberg import NagelSchreckenberg
 
 def main():
-    # Simulation parameters
-    length = 100  # Length of the road
-    num_cars = 10  # Number of cars
-    max_speed = 10  # Maximum speed of cars
-    time_steps = 100  # Number of time steps to simulate
-
-    # Validate parameters
-    if num_cars > length:
-        raise ValueError("Number of cars cannot be greater than the length of the road")
-
-    # Initialize the Nagel-Schreckenberg model
-    model = NagelSchreckenberg(length, num_cars, max_speed)
-
-    # Set up the tkinter window
+    # Initialize the tkinter window
     root = tk.Tk()
     root.title("Nagel-Schreckenberg Simulation")
+
+    # Simulation parameters
+    length = tk.IntVar(value=100)
+    num_cars = tk.IntVar(value=10)
+    max_speed = tk.IntVar(value=10)
+    time_steps = tk.IntVar(value=100)
+
+    # Create sliders for adjusting parameters
+    tk.Label(root, text="Length of the road").pack()
+    tk.Scale(root, from_=10, to=200, orient=tk.HORIZONTAL, variable=length).pack()
+    tk.Label(root, text="Number of cars").pack()
+    tk.Scale(root, from_=1, to=200, orient=tk.HORIZONTAL, variable=num_cars).pack()
+    tk.Label(root, text="Maximum speed of cars").pack()
+    tk.Scale(root, from_=1, to=20, orient=tk.HORIZONTAL, variable=max_speed).pack()
+    tk.Label(root, text="Number of time steps").pack()
+    tk.Scale(root, from_=10, to=500, orient=tk.HORIZONTAL, variable=time_steps).pack()
+
+    # Set up the label for displaying the simulation
     label = tk.Label(root, font=("Courier", 12), justify=tk.LEFT)
     label.pack()
 
     # Counter for time steps
     step_counter = [0]
     output_lines = []
+    running = [False]
+    model = None
+
+    def start_simulation():
+        if not running[0]:
+            running[0] = True
+            update_simulation()
+
+    def stop_simulation():
+        running[0] = False
+
+    def reset_simulation():
+        stop_simulation()
+        step_counter[0] = 0
+        output_lines.clear()
+        label.config(text="")
+        model.initialize()
 
     def update_simulation():
-        if step_counter[0] < time_steps:
+        if running[0] and step_counter[0] < time_steps.get():
             model.update()
             output_lines.append(model.visualize())
             label.config(text="\n".join(output_lines))
             step_counter[0] += 1
             root.after(100, update_simulation)  # Schedule the next update
 
-    # Run the simulation
-    root.after(0, update_simulation)
+    def initialize_model():
+        nonlocal model
+        model = NagelSchreckenberg(length.get(), num_cars.get(), max_speed.get())
+        reset_simulation()
+
+    # Create buttons for starting, stopping, and resetting the simulation
+    tk.Button(root, text="Start", command=start_simulation).pack()
+    tk.Button(root, text="Stop", command=stop_simulation).pack()
+    tk.Button(root, text="Reset", command=initialize_model).pack()
+
+    # Initialize the model
+    initialize_model()
+
+    # Run the tkinter main loop
     root.mainloop()
 
 if __name__ == "__main__":
