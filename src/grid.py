@@ -1,11 +1,14 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 # import test_case as test_case
-from src.utils import (
+from utils import (
     BLOCKS_VALUE,
-    HORIZONTAL_ROAD_VALUE,
+    HORIZONTAL_ROAD_VALUE_LEFT,
+    HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_VALUE,
-    VERTICAL_ROAD_VALUE,
+    VERTICAL_ROAD_VALUE_UP,
+    VERTICAL_ROAD_VALUE_DOWN,
 )
 
 
@@ -54,15 +57,23 @@ class Grid:
         self.create_vertical_lanes()
         self.create_horizontal_lanes()
         self.create_intersections()
+        self.create_edge_lanes()
 
     def create_edge_lanes(self):
         """
         Create lanes along the edges of the grid, ensuring connectivity.
         """
-        self.grid[: self.lane_width, :] = HORIZONTAL_ROAD_VALUE
-        self.grid[-self.lane_width :, :] = HORIZONTAL_ROAD_VALUE
-        self.grid[:, : self.lane_width] = HORIZONTAL_ROAD_VALUE
-        self.grid[:, -self.lane_width :] = HORIZONTAL_ROAD_VALUE
+
+        mid = self.lane_width // 2
+        self.grid[:mid, :] = HORIZONTAL_ROAD_VALUE_LEFT
+        self.grid[mid : self.lane_width, :] = HORIZONTAL_ROAD_VALUE_RIGHT
+        self.grid[-mid:, :] = HORIZONTAL_ROAD_VALUE_RIGHT
+        self.grid[-self.lane_width : -mid, :] = HORIZONTAL_ROAD_VALUE_LEFT
+
+        self.grid[:, :mid] = VERTICAL_ROAD_VALUE_DOWN
+        self.grid[:, mid : self.lane_width] = VERTICAL_ROAD_VALUE_UP
+        self.grid[:, -mid:] = VERTICAL_ROAD_VALUE_DOWN
+        self.grid[:, -self.lane_width : -mid] = VERTICAL_ROAD_VALUE_UP
 
     def create_vertical_lanes(self):
         """
@@ -71,10 +82,14 @@ class Grid:
         for col in range(0, self.size, self.blocks):
             left = col
             right = min(col + self.lane_width, self.size)
+            mid = (left + right) // 2
             for x in range(self.size):
-                for y in range(left, right):
+                for y in range(left, mid):
                     if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = VERTICAL_ROAD_VALUE
+                        self.grid[x, y] = VERTICAL_ROAD_VALUE_DOWN
+                for y in range(mid, right):
+                    if self.grid[x, y] == BLOCKS_VALUE:
+                        self.grid[x, y] = VERTICAL_ROAD_VALUE_UP
 
     def create_horizontal_lanes(self):
         """
@@ -84,9 +99,14 @@ class Grid:
             top = row
             bottom = min(row + self.lane_width, self.size)
             for x in range(top, bottom):
+                mid = self.size // 2
                 for y in range(self.size):
-                    if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = HORIZONTAL_ROAD_VALUE
+                    if y < mid:
+                        if self.grid[x, y] == BLOCKS_VALUE:
+                            self.grid[x, y] = HORIZONTAL_ROAD_VALUE_LEFT
+                    else:
+                        if self.grid[x, y] == BLOCKS_VALUE:
+                            self.grid[x, y] = HORIZONTAL_ROAD_VALUE_RIGHT
 
     def create_intersections(self):
         """
@@ -126,3 +146,24 @@ class Grid:
 
         for car in self.cars:
             car.move_car()
+
+    def plot_grid(grid):
+        """
+        Plot the grid using matplotlib.
+
+        Params:
+        -------
+        - grid (np.ndarray): The grid array to be visualized.
+        """
+        plt.figure(figsize=(10, 10))
+        plt.imshow(grid, cmap="tab20c", origin="upper")
+        plt.colorbar(label="Grid Values (Roads/Blocks)")
+        plt.title("City Grid Visualization")
+        plt.xlabel("X-axis (Columns)")
+        plt.ylabel("Y-axis (Rows)")
+        plt.grid(visible=False)  # Remove default matplotlib gridlines
+        plt.show()
+
+
+grid = Grid(25, 5, 2)
+Grid.plot_grid(grid.grid)
