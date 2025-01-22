@@ -28,6 +28,9 @@ class Grid:
         - lane_width (int, optional): The width of each lane. Defaults to 2.
         """
         self.grid = np.full((grid_size, grid_size), BLOCKS_VALUE, dtype=int)
+        self.underlying_grid = np.full(
+            (grid_size, grid_size), BLOCKS_VALUE, dtype=int
+        )  # Track original cell types
         self.size = grid_size
         self.blocks = blocks_size
 
