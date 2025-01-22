@@ -1,6 +1,5 @@
 import tkinter as tk
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
@@ -16,7 +15,7 @@ from src.utils import (
     INTERSECTION_VALUE,
 )
 
-matplotlib.use("TkAgg")
+plt.ion()
 
 
 class SimulationUI:
@@ -78,7 +77,6 @@ class SimulationUI:
 
             self.controls_frame = tk.Frame(self.master)
             self.controls_frame.pack(side=tk.LEFT, padx=10)
-
             init_sliders()
 
             self.start_button = tk.Button(
@@ -105,7 +103,7 @@ class SimulationUI:
             self.fig, self.ax = plt.subplots(figsize=(6, 6))
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
             self.canvas.get_tk_widget().pack(side=tk.RIGHT, padx=10)
-
+            plt.ioff()
         else:
             print("\033[38;5;46mRunning simulation without UI.\033[0m")
             pass
