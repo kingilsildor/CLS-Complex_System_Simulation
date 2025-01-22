@@ -209,11 +209,20 @@ class Car:
                 return pos
         return None
 
-    def move_boundary(self):
+    def move_boundary(self, new_x: int, new_y: int) -> tuple:
         """
         Move the car to the boundary of the grid.
         """
-        pass  # TODO
+        if new_x < 0:
+            new_x = self.grid.size - 1
+        if new_x >= self.grid.size:
+            new_x = 0
+        if new_y < 0:
+            new_y = self.grid.size - 1
+        if new_y >= self.grid.size:
+            new_y = 0
+
+        return new_x, new_y
 
     def right_of_way(self):
         """
