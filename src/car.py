@@ -56,13 +56,13 @@ class Car:
             grid_boundary = self.grid.size
 
             if x < 0:
-                x = 0
-            elif x >= grid_boundary:
                 x = grid_boundary - 1
+            elif x >= grid_boundary:
+                x = 0
             if y < 0:
-                y = 0
-            elif y >= grid_boundary:
                 y = grid_boundary - 1
+            elif y >= grid_boundary:
+                y = 0
             return x, y
 
         def _move_intersection():
@@ -90,16 +90,22 @@ class Car:
                 return  # Invalid direction, do nothing
 
             new_pos = _move_boundary(*new_pos)
+
             if self.grid.grid[new_pos] in ROAD_CELLS:
                 self.position = new_pos
                 self.grid.grid[new_pos] = CAR_VALUE
 
-        if self.get_road_cell() in ROAD_CELLS:
+        road_cell = self.get_road_cell()
+        if road_cell in ROAD_CELLS:
             _move_straight()
-        elif self.get_road_cell() == INTERSECTION_VALUE:
+        elif road_cell == INTERSECTION_VALUE:
             _move_intersection()
+        elif road_cell == CAR_VALUE:
+            pass
         else:
-            raise ValueError("\033[91mInvalid road cell for the car.\033[0m")
+            raise ValueError(
+                f"\033[91mInvalid road cell {road_cell} for the car at {self.position}.\033[0m"
+            )
 
     def get_road_cell(self):
         """
