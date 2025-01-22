@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import random
 
 class NagelSchreckenberg:
@@ -39,11 +38,6 @@ class NagelSchreckenberg:
             distance += 1
         return distance
 
-    def run_simulation(self, steps):
-        for _ in range(steps):
-            self.update()
-            self.visualize()
-
     def visualize(self):
-        # Visualization logic can be implemented here
-        print(''.join(['🚗' if x == 1 else '.' for x in self.road]))
+        # Return the string representation of the road
+        return ''.join(['🚗' if x == 1 else '.' for x in self.road])
