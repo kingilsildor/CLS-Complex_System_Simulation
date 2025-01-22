@@ -3,7 +3,7 @@ import tkinter as tk
 from src.simulation import SimulationUI
 
 if __name__ == "__main__":
-    show_ui = False  # Running without UI
+    show_ui = True
     root = tk.Tk() if show_ui else None
     ui = SimulationUI(root, show_ui=show_ui, colour_blind=True)
 
