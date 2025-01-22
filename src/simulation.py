@@ -1,4 +1,5 @@
 import tkinter as tk
+
 import matplotlib
 
 matplotlib.use("TkAgg")  # Set backend before importing pyplot
@@ -8,14 +9,14 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from src.car import Car
-from src.grid import Grid
 from src.density import DensityTracker
+from src.grid import Grid
 from src.utils import (
+    CAR_VALUE,
     FILE_EXTENSION,
     HORIZONTAL_ROAD_VALUE,
-    VERTICAL_ROAD_VALUE,
     INTERSECTION_VALUE,
-    CAR_VALUE,
+    VERTICAL_ROAD_VALUE,
 )
 
 plt.ion()
@@ -220,7 +221,7 @@ class SimulationUI:
         # Set up the initial plot
         self.ax.clear()
         self.fig.subplots_adjust(top=0.85)  # Ensure title space is maintained
-        cmap = "Greys" if self.colour_blind else "viridis"
+        cmap = "Greys" if self.colour_blind else "Set1_r"
         self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
         self.ax.set_xticks([])
         self.ax.set_yticks([])
@@ -352,16 +353,17 @@ class SimulationUI:
         grid_states = []
         for step in range(steps):
             density = self.density_tracker.calculate_overall_density()
-            print(f"\033[1;33mStep {step+1:4d}/{steps:d}\033[0m", end=" ")
+            print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
             print(
-                f"\033[1;32mSystem: {density['system_density']*100:4.1f}%\033[0m",
+                f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m",
                 end=" ",
             )
             print(
-                f"\033[1;34mRoads: {density['road_density']*100:4.1f}%\033[0m", end=" "
+                f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m",
+                end=" ",
             )
             print(
-                f"\033[1;35mInter: {density['intersection_density']*100:4.1f}%\033[0m",
+                f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
                 end=" ",
             )
             print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
@@ -373,11 +375,11 @@ class SimulationUI:
         density = self.density_tracker.calculate_overall_density()
         print(f"\033[1;33mStep {steps:4d}/{steps:d}\033[0m", end=" ")
         print(
-            f"\033[1;32mSystem: {density['system_density']*100:4.1f}%\033[0m", end=" "
+            f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m", end=" "
         )
-        print(f"\033[1;34mRoads: {density['road_density']*100:4.1f}%\033[0m", end=" ")
+        print(f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m", end=" ")
         print(
-            f"\033[1;35mInter: {density['intersection_density']*100:4.1f}%\033[0m",
+            f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
             end=" ",
         )
         print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
