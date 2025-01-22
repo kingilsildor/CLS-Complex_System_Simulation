@@ -86,7 +86,8 @@ class Car:
         if not self.in_rotary:
             new_x, new_y = self.next_position(*self.position)
             if new_x is None or new_y is None:
-                return  # No suitable next cell
+                self.move_boundary()
+                return
 
             next_code = self.grid.grid[new_x, new_y]
 
@@ -110,15 +111,17 @@ class Car:
         --------
         - tuple: The new position (x, y) or (None, None) if out of bounds.
         """
-        if self.direction == "N" and x > 0:
-            return (x - 1, y)
-        elif self.direction == "S" and x < self.grid.size - 1:
-            return (x + 1, y)
-        elif self.direction == "E" and y < self.grid.size - 1:
-            return (x, y + 1)
-        elif self.direction == "W" and y > 0:
-            return (x, y - 1)
-        return (None, None)
+        next_x, next_y = x, y
+        if self.direction == "N":
+            next_x = x - 1
+        elif self.direction == "S":
+            next_x = x + 1
+        elif self.direction == "E":
+            next_y = y + 1
+        elif self.direction == "W":
+            next_y = y - 1
+
+        return (next_x, next_y) if self.is_in_bounds(next_x, next_y) else (None, None)
 
     def enter_rotary(self, new_x: int, new_y: int):
         """
@@ -211,18 +214,38 @@ class Car:
 
     def move_boundary(self, new_x: int, new_y: int) -> tuple:
         """
-        Move the car to the boundary of the grid.
+        Move the car to the opposite side of the grid when it reaches a boundary.
+        For vertical movement (N/S), it wraps around vertically.
+        For horizontal movement (E/W), it wraps around horizontally.
         """
-        if new_x < 0:
-            new_x = self.grid.size - 1
-        if new_x >= self.grid.size:
-            new_x = 0
-        if new_y < 0:
-            new_y = self.grid.size - 1
-        if new_y >= self.grid.size:
-            new_y = 0
+        x, y = self.position
+        old_code = self.road_code_for_direction()
+        self.grid.grid[x, y] = old_code
 
-        return new_x, new_y
+        # Calculate new position based on direction
+        if self.direction == "N":
+            # Move to the bottom of the grid
+            new_x = self.grid.size - 1
+            new_y = y
+        elif self.direction == "S":
+            # Move to the top of the grid
+            new_x = 0
+            new_y = y
+        elif self.direction == "E":
+            # Move to the left of the grid
+            new_x = x
+            new_y = 0
+        elif self.direction == "W":
+            # Move to the right of the grid
+            new_x = x
+            new_y = self.grid.size - 1
+
+        if self.can_move_into(self.grid.grid[new_x, new_y], check_rotary=False):
+            self.grid.grid[new_x, new_y] = CAR_VALUE
+            self.position = (new_x, new_y)
+        else:
+            # If can't wrap around, just remove the car
+            self.grid.cars.remove(self)
 
     def right_of_way(self):
         """
@@ -294,3 +317,18 @@ class Car:
                 return ring[next_idx]
 
         return (None, None)
+
+    def is_in_bounds(self, x: int, y: int) -> bool:
+        """
+        Check if a position is within the bounds of the grid.
+
+        Params:
+        -------
+        - x (int): The x-coordinate of the position.
+        - y (int): The y-coordinate of the position.
+
+        Returns:
+        --------
+        - bool: True if the position is within the bounds, False otherwise.
+        """
+        return 0 <= x < self.grid.size and 0 <= y < self.grid.size

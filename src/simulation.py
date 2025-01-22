@@ -1,18 +1,21 @@
 import tkinter as tk
 
+import matplotlib
+
+matplotlib.use("TkAgg")  # Set backend before importing pyplot
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from src.car import Car
-from src.grid import Grid
 from src.density import DensityTracker
+from src.grid import Grid
 from src.utils import (
     FILE_EXTENSION,
     HORIZONTAL_ROAD_VALUE,
-    VERTICAL_ROAD_VALUE,
     INTERSECTION_VALUE,
+    VERTICAL_ROAD_VALUE,
 )
 
 plt.ion()
@@ -23,7 +26,7 @@ class SimulationUI:
         self,
         master: tk.Tk,
         show_ui: bool = True,
-        colour_blind: bool = False,
+        colour_blind: bool = True,
         drive_on_right: bool = True,
     ):
         """
@@ -42,75 +45,98 @@ class SimulationUI:
         self.steps = 0
         self.colour_blind = colour_blind
         self.density_tracker = None
-
-        def init_sliders():
-            """
-            Initialize the sliders for the simulation parameters.
-            When adding new sliders, update the `init_sliders` method accordingly.
-            """
-            self.steps_slider = self.create_slider(
-                "Steps", default_val=250, min_val=50, max_val=1000
-            )
-
-            self.frame_rate_slider = self.create_slider(
-                "Frame Rate", default_val=40, min_val=1, max_val=500
-            )
-
-            self.grid_size_slider = self.create_slider(
-                "Grid Size", default_val=52, min_val=10, max_val=100
-            )
-
-            self.blocks_size_slider = self.create_slider(
-                "Blocks Size", default_val=10, min_val=2, max_val=50
-            )
-
-            self.lane_width_slider = self.create_slider(
-                "Lane Width", default_val=2, min_val=2, max_val=30
-            )
-
-            self.car_count_slider = self.create_slider(
-                "Car Count", default_val=100, min_val=1, max_val=1250
-            )
+        self.grid = None
+        self.simulation = None
+        self.animation = None
 
         if self.show_ui:
             self.master.title("Car Traffic in a 2D street network.")
 
+            # Create frames
             self.controls_frame = tk.Frame(self.master)
             self.controls_frame.pack(side=tk.LEFT, padx=10)
-            init_sliders()
 
-            self.start_button = tk.Button(
-                self.controls_frame,
-                text="Start Simulation",
-                command=self.start_simulation,
-            )
-            self.start_button.pack(pady=10)
+            # Initialize plot frame
+            self.plot_frame = tk.Frame(self.master)
+            self.plot_frame.pack(side=tk.RIGHT, padx=10)
 
-            self.pause_button = tk.Button(
-                self.controls_frame,
-                text="Pause Simulation",
-                command=self.pause_simulation,
-            )
-            self.pause_button.pack(pady=5)
+            # Initialize controls
+            self.init_sliders()
+            self.init_buttons()
 
-            self.reset_button = tk.Button(
-                self.controls_frame,
-                text="Reset Simulation",
-                command=self.reset_simulation,
-            )
-            self.reset_button.pack(pady=5)
+            # Initialize plot
+            self.init_plot()
 
-            self.fig, self.ax = plt.subplots(figsize=(6, 6))
-            self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
-            self.canvas.get_tk_widget().pack(side=tk.RIGHT, padx=10)
-            plt.ioff()
         else:
             print("\033[38;5;46mRunning simulation without UI.\033[0m")
-            pass
 
-        self.grid = None
-        self.simulation = None
-        self.animation = None
+    def init_plot(self):
+        """Initialize the matplotlib plot"""
+        self.fig = plt.Figure(figsize=(6, 6))
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
+        self.canvas.get_tk_widget().pack()
+
+        # Initial setup
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
+        self.fig.tight_layout()
+        self.fig.subplots_adjust(top=0.85)  # Make more room for title
+
+        # Titel
+        title = "Welcome to SimCity 2000"
+        self.ax.set_title(title)
+
+        self.canvas.draw()
+
+    def init_buttons(self):
+        """Initialize control buttons"""
+        self.start_button = tk.Button(
+            self.controls_frame,
+            text="Start Simulation",
+            command=self.start_simulation,
+        )
+        self.start_button.pack(pady=10)
+
+        self.pause_button = tk.Button(
+            self.controls_frame,
+            text="Pause Simulation",
+            command=self.pause_simulation,
+        )
+        self.pause_button.pack(pady=5)
+
+        self.reset_button = tk.Button(
+            self.controls_frame,
+            text="Reset Simulation",
+            command=self.reset_simulation,
+        )
+        self.reset_button.pack(pady=5)
+
+    def init_sliders(self):
+        """Initialize the control sliders"""
+        self.steps_slider = self.create_slider(
+            "Steps", default_val=250, min_val=50, max_val=1000
+        )
+
+        self.frame_rate_slider = self.create_slider(
+            "Frame Rate", default_val=40, min_val=1, max_val=500
+        )
+
+        self.grid_size_slider = self.create_slider(
+            "Grid Size", default_val=50, min_val=10, max_val=100
+        )
+
+        self.blocks_size_slider = self.create_slider(
+            "Blocks Size", default_val=10, min_val=2, max_val=50
+        )
+
+        self.lane_width_slider = self.create_slider(
+            "Lane Width", default_val=2, min_val=2, max_val=30
+        )
+
+        self.car_count_slider = self.create_slider(
+            "Car Count", default_val=100, min_val=1, max_val=1250
+        )
 
     def create_slider(
         self,
@@ -195,10 +221,21 @@ class SimulationUI:
         cars = self.create_cars(car_count)
         self.grid.add_cars(cars)
 
+        # Set up the initial plot
+        self.ax.clear()
+        self.fig.subplots_adjust(top=0.85)  # Ensure title space is maintained
+        cmap = "Greys" if self.colour_blind else "Set1_r"
+        self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
+
+        self.canvas.draw()
+
         # Update button states
         self.start_button.config(state=tk.DISABLED)
         self.pause_button.config(state=tk.NORMAL)
 
+        # Create animation
         self.animation = FuncAnimation(
             self.fig,
             self.update_simulation,
@@ -207,6 +244,9 @@ class SimulationUI:
             repeat=False,
         )
         self.canvas.draw()
+
+        # Keep a reference to prevent garbage collection
+        self._animation_ref = self.animation
 
     def update_simulation(self, frame: int):
         """
@@ -217,23 +257,17 @@ class SimulationUI:
         frame (int): The current frame number in the simulation.
         """
         if self.is_paused:
-            return
+            return [self.im, self.title]
 
         self.grid.update_movement()
         density_metrics = self.density_tracker.calculate_overall_density()
-        self.write_simulation(frame, density_metrics)
 
-        self.ax.clear()
-        if self.colour_blind:
-            self.ax.imshow(self.grid.grid, cmap="Greys", interpolation="nearest")
-        else:
-            self.ax.imshow(self.grid.grid, cmap="viridis", interpolation="nearest")
+        # Update the image data and title
+        self.im.set_array(self.grid.grid)
 
         # Update title with all density metrics
         title = f"Simulation step {frame + 1}\n"
-        title += f"System: {density_metrics['system_density']*100:.1f}% | "
-        title += f"Roads: {density_metrics['road_density']*100:.1f}% | "
-        title += f"Inter: {density_metrics['intersection_density']*100:.1f}%"
+        title += f"Cars: {density_metrics['total_cars']}"
         self.ax.set_title(title)
 
         self.canvas.draw()
@@ -292,6 +326,8 @@ class SimulationUI:
             f"Grid: {grid_size}x{grid_size} | Cars: {car_count} | Steps: {steps}\033[0m\n"
         )
 
+        assert isinstance(steps, int), f"Steps must be an integer, got {type(steps)}"
+
         # Initialize grid and density tracker
         self.grid = Grid(grid_size, blocks_size, lane_width)
         self.density_tracker = DensityTracker(self.grid)
@@ -304,16 +340,17 @@ class SimulationUI:
         grid_states = []
         for step in range(steps):
             density = self.density_tracker.calculate_overall_density()
-            print(f"\033[1;33mStep {step+1:4d}/{steps:d}\033[0m", end=" ")
+            print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
             print(
-                f"\033[1;32mSystem: {density['system_density']*100:4.1f}%\033[0m",
+                f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m",
                 end=" ",
             )
             print(
-                f"\033[1;34mRoads: {density['road_density']*100:4.1f}%\033[0m", end=" "
+                f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m",
+                end=" ",
             )
             print(
-                f"\033[1;35mInter: {density['intersection_density']*100:4.1f}%\033[0m",
+                f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
                 end=" ",
             )
             print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
@@ -325,11 +362,11 @@ class SimulationUI:
         density = self.density_tracker.calculate_overall_density()
         print(f"\033[1;33mStep {steps:4d}/{steps:d}\033[0m", end=" ")
         print(
-            f"\033[1;32mSystem: {density['system_density']*100:4.1f}%\033[0m", end=" "
+            f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m", end=" "
         )
-        print(f"\033[1;34mRoads: {density['road_density']*100:4.1f}%\033[0m", end=" ")
+        print(f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m", end=" ")
         print(
-            f"\033[1;35mInter: {density['intersection_density']*100:4.1f}%\033[0m",
+            f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
             end=" ",
         )
         print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
@@ -368,13 +405,17 @@ class SimulationUI:
         try:
             if self.animation and hasattr(self.animation, "event_source"):
                 self.animation.event_source.stop()
+            if hasattr(self, "_animation_ref"):
+                del self._animation_ref
         except Exception:
             pass  # Animation might already be stopped
 
         # Clear the plot
         if hasattr(self, "ax") and self.ax:
             self.ax.clear()
-            self.ax.set_title("Simulation Reset")
+            self.ax.set_xticks([])
+            self.ax.set_yticks([])
+
             self.canvas.draw()
 
         # Reset simulation state

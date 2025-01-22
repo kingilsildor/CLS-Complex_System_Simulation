@@ -49,6 +49,8 @@ class Grid:
         self.rotary_dict = []
         self.flag = np.zeros((grid_size, grid_size), dtype=int)
         self.roads()
+        # Store the road layout
+        self.road_layout = self.grid.copy()
 
     def roads(self):
         """
@@ -71,7 +73,7 @@ class Grid:
         """
         Create vertical roads at regular intervals based on block size.
         """
-        for col in range(0, self.size, self.blocks):
+        for col in range(int(self.blocks / 2), self.size, self.blocks):
             left = col
             right = min(col + self.lane_width, self.size)
             for x in range(self.size):
@@ -83,7 +85,7 @@ class Grid:
         """
         Create horizontal roads at regular intervals based on block size.
         """
-        for row in range(0, self.size, self.blocks):
+        for row in range(int(self.blocks / 2), self.size, self.blocks):
             top = row
             bottom = min(row + self.lane_width, self.size)
             for x in range(top, bottom):
@@ -96,8 +98,8 @@ class Grid:
         Create intersections where vertical and horizontal roads meet.
         Intersections are designed as 2x2 rotary spaces to facilitate smooth traffic flow.
         """
-        for i in range(self.blocks, self.size, self.blocks):
-            for j in range(self.blocks, self.size, self.blocks):
+        for i in range(int(self.blocks / 2), self.size, self.blocks):
+            for j in range(int(self.blocks / 2), self.size, self.blocks):
                 x0 = i
                 x1 = i + self.lane_width
                 y0 = j
@@ -121,11 +123,9 @@ class Grid:
     def update_movement(self):
         """
         Update the grid to reflect the movement of all cars.
-
-        The grid is reset, roads are redrawn, and each car's position is updated.
         """
-        self.grid.fill(BLOCKS_VALUE)
-        self.roads()
+        # Reset to road layout instead of redrawing roads
+        self.grid = self.road_layout.copy()
 
         for car in self.cars:
             car.move_car()
