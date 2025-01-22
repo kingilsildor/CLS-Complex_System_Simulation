@@ -121,8 +121,6 @@ class Car:
         elif self.direction == "W":
             next_y = y - 1
 
-        print(next_x, next_y, self.is_in_bounds(next_x, next_y))
-
         return (next_x, next_y) if self.is_in_bounds(next_x, next_y) else (None, None)
 
     def enter_rotary(self, new_x: int, new_y: int):
@@ -222,24 +220,26 @@ class Car:
         """
         x, y = self.position
         old_code = self.road_code_for_direction()
-        self.grid.grid[x, y] = old_code  # Restore the road
+        self.grid.grid[x, y] = old_code
 
         # Calculate new position based on direction
         if self.direction == "N":
-            new_x = self.grid.size - 1  # Move to bottom
+            # Move to the bottom of the grid
+            new_x = self.grid.size - 1
             new_y = y
         elif self.direction == "S":
-            new_x = 0  # Move to top
+            # Move to the top of the grid
+            new_x = 0
             new_y = y
         elif self.direction == "E":
+            # Move to the left of the grid
             new_x = x
-            new_y = 0  # Move to left edge
+            new_y = 0
         elif self.direction == "W":
+            # Move to the right of the grid
             new_x = x
-            new_y = self.grid.size - 0  # Move to right edge
+            new_y = self.grid.size - 1
 
-        # Only move if the target position is a valid road
-        print(new_x, new_y, self.grid.size)
         if self.can_move_into(self.grid.grid[new_x, new_y], check_rotary=False):
             self.grid.grid[new_x, new_y] = CAR_VALUE
             self.position = (new_x, new_y)
