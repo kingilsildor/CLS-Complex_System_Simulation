@@ -20,7 +20,7 @@ class Car:
     The car can move within the grid, enter and exit rotaries, and follow road rules.
     """
 
-    def __init__(self, grid: Grid, position: tuple, road_type: int, car_size: int = 1):
+    def __init__(self, grid: Grid, position: tuple, road_type: int, car_size: int = 2):
         """
         Initialize the car with a given grid, position, and direction.
 
@@ -140,13 +140,13 @@ class Car:
             - tuple: The new x and y coordinates of the car.
             """
             if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-                new_pos = (x + 1, y)
-            elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
                 new_pos = (x - 1, y)
+            elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+                new_pos = (x + 1, y)
             elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-                new_pos = (x, y - 1)
-            elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
                 new_pos = (x, y + 1)
+            elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+                new_pos = (x, y - 1)
             else:
                 return  # Invalid direction, do nothing
 
@@ -196,13 +196,13 @@ class Car:
         x, y = self.head_position
 
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-            x, y = self.loop_boundary(x + 1, y)
-        if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
             x, y = self.loop_boundary(x - 1, y)
+        if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            x, y = self.loop_boundary(x + 1, y)
         if self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-            x, y = self.loop_boundary(x, y - 1)
-        if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
             x, y = self.loop_boundary(x, y + 1)
+        if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            x, y = self.loop_boundary(x, y - 1)
 
         blocked = self.grid.grid[x, y] in [CAR_HEAD, CAR_BODY]
         return blocked
