@@ -20,7 +20,6 @@ class SimulationUI:
         master: tk.Tk,
         show_ui: bool = True,
         colour_blind: bool = True,
-        drive_on_right: bool = True,
     ):
         """
         Initialize the simulation UI for controlling and visualizing the car traffic simulation.
