@@ -49,32 +49,32 @@ class Car:
             self.grid.grid[x, y] = CAR_HEAD
         self.head_position = position
 
-        self.car_size = car_size
-        if self.car_size > 1:
+        self.car_body_size = car_size - 1
+        if self.car_body_size >= 1:
             self.create_larger_car()
 
     def create_larger_car(self):
         """
         Create a larger car by adding more body cells to the car.
         """
-        body_positions = np.zeros((self.car_size, 2), dtype=int)
+        body_positions = np.zeros((self.car_body_size, 2), dtype=int)
         x, y = self.head_position
 
         # Fill in the body positions based on the road cell and direction
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-            for i in range(self.car_size):
+            for i in range(self.car_body_size):
                 x, y = self.loop_boundary(x - i - 1, y)
                 body_positions[i] = (x, y)
         elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
-            for i in range(self.car_size):
+            for i in range(self.car_body_size):
                 x, y = self.loop_boundary(x + i + 1, y)
                 body_positions[i] = (x, y)
         elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-            for i in range(self.car_size):
+            for i in range(self.car_body_size):
                 x, y = self.loop_boundary(x, y - i - 1)
                 body_positions[i] = (x, y)
         elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
-            for i in range(self.car_size):
+            for i in range(self.car_body_size):
                 x, y = self.loop_boundary(x, y + i + 1)
                 body_positions[i] = (x, y)
 
@@ -138,7 +138,7 @@ class Car:
                 else:
                     pass  # Next position in the rotary is occupied so the car waits
 
-        def _move_straight():
+        def _move_straight(x: int, y: int, car_type: int = CAR_HEAD) -> tuple:
             """
             Move the car in a straight line based on its current position and direction.
             """
@@ -157,30 +157,33 @@ class Car:
 
             new_pos = self.loop_boundary(*new_pos)
 
-            if self.grid.grid[new_pos] in ROAD_CELLS:
-                self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
-                self.head_position = new_pos
-                self.grid.grid[new_pos] = CAR_HEAD
-            elif self.grid.grid[new_pos] in INTERSECTION_CELLS:
-                # self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
-                self.head_position = new_pos
-                self.grid.grid[new_pos] = CAR_HEAD
+            if (
+                self.grid.grid[new_pos] not in INTERSECTION_CELLS
+                and self.grid.grid[new_pos] not in ROAD_CELLS
+            ):
+                return  # Invalid road cell, do nothing
+            if self.grid.grid[new_pos] in INTERSECTION_CELLS:
                 self.road_type = INTERSECTION_VALUE
+
+            assert car_type in [CAR_HEAD, CAR_BODY]
+            self.grid.grid[new_pos] = car_type
+            return new_pos
 
         def _move_body():
             """
             Move the car body cells based on the new head position.
             """
-            x, y = self.head_position
-            for _ in range(self.car_size):
-                if self.grid.grid[x, y] == CAR_BODY:
-                    self.grid.grid[x, y] = CAR_HEAD
-                x, y = self.loop_boundary(x, y)
+            if self.car_body_size == 0:
+                return
+
+            for i in range(self.car_body_size):
+                x, y = self.body_positions[i]
+                self.body_positions[i] = _move_straight(x, y, CAR_BODY)
 
         if self.check_infront():
             pass  # Do nothing if there is a car in front
         elif self.road_type in ROAD_CELLS:
-            _move_straight()
+            self.head_position = _move_straight(*self.head_position)
             _move_body()
         elif self.road_type == INTERSECTION_VALUE:
             _move_intersection()
@@ -213,7 +216,9 @@ class Car:
         if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
             x, y = self.loop_boundary(x, y + 1)
 
-        return self.grid.grid[x, y] in [CAR_HEAD, CAR_BODY]
+        blocked = self.grid.grid[x, y] in [CAR_HEAD, CAR_BODY]
+        assert isinstance(blocked, bool)
+        return blocked
 
     def enter_rotary(self):
         x, y = self.head_position
