@@ -16,6 +16,7 @@ class NagelSchreckenberg:
 
     def initialize(self):
         # Initialize the road with cars
+        self.road = [0] * self.road_length
         positions = random.sample(range(self.road_length), self.num_cars)
         for pos in positions:
             self.road[pos] = 1
