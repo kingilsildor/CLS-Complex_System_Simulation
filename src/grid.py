@@ -5,7 +5,7 @@ from src.utils import (
     BLOCKS_VALUE,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
-    INTERSECTION_VALUE,
+    INTERSECTION_INTERNAL,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
 )
@@ -41,13 +41,11 @@ class Grid:
         # Ensure the number of lanes is an even number
         try:
             if lane_width % 2 != 0:
-                raise ValueError(
-                    "\033[38;5;214mNumber of lanes must be an even number.\033[0m"
-                )
+                raise ValueError("Number of lanes must be an even number.")
             self.lane_width = lane_width
         except ValueError:
             self.lane_width = lane_width + 1
-            print(f"\033[38;5;214mSetting lane width to {self.lane_width}.\033[0m")
+            print(f"Setting lane width to {self.lane_width}.")
 
         self.cars = []
         self.rotary_dict = []
@@ -127,7 +125,7 @@ class Grid:
                 x0, x1 = i, i + self.lane_width
                 y0, y1 = j, j + self.lane_width
 
-                self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
+                self.grid[x0:x1, y0:y1] = INTERSECTION_INTERNAL
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 assert isinstance(ring, list)
