@@ -8,8 +8,10 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_VALUE,
     ROAD_CELLS,
+    INTERSECTION_CELLS,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
+    INTERSECTION_EXIT,
 )
 
 
@@ -122,7 +124,25 @@ class Car:
             """
             Move the car within an intersection based on its current position and direction.
             """
-            _move_straight()
+            
+            x, y = self.head_position
+            if self.grid.flag[x, y] == INTERSECTION_EXIT:
+                if self.check_exit_position():  # Exit is free, this functions returns a tuple containing new posiition
+                    new_x, new_y = self.check_exit_position()
+                    # self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    self.head_position = new_x, new_y
+                    self.grid.grid[self.head_position] = CAR_HEAD
+                else:
+                    pass  # Exit is occupied, so the car waits
+            else:
+                next_position = self.get_next_rotary_position(x, y)
+                if next_position != (None, None):
+                    new_x, new_y = self.get_next_rotary_position(x, y)
+                    # self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    self.head_position = new_x, new_y
+                    self.grid.grid[self.head_position] = CAR_HEAD
+                else:
+                    pass  # Next position in the rotary is occupied so the car waits
 
         def _move_straight():
             """
@@ -143,20 +163,15 @@ class Car:
 
             new_pos = self.loop_boundary(*new_pos)
 
-            # Check if the new position is a road cell AND not occupied by another car
-            if (
-                self.grid.grid[new_pos] in ROAD_CELLS
-                or INTERSECTION_VALUE
-                and self.grid.grid[new_pos] not in [CAR_HEAD, CAR_BODY]
-            ):
-                # Only mark the old position as a road block if it's not already occupied by another car
-                old_pos = self.head_position
-                if (
-                    self.grid.grid[old_pos] == CAR_HEAD
-                ):  # Only clear if it's still our car's head
-                    self.grid.grid[old_pos] = self.road_type
+            if self.grid.grid[new_pos] in ROAD_CELLS:
+                self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
                 self.head_position = new_pos
                 self.grid.grid[new_pos] = CAR_HEAD
+            elif self.grid.grid[new_pos] in INTERSECTION_CELLS:
+                # self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
+                self.head_position = new_pos
+                self.grid.grid[new_pos] = CAR_HEAD
+                self.road_type = INTERSECTION_VALUE
 
         next_cell = self.check_infront()
 
@@ -199,6 +214,92 @@ class Car:
             x, y = self.loop_boundary(x, y + 1)
 
         return self.grid.grid[x, y]
+
+    def enter_rotary(self):
+        x, y = self.head_position
+        if (
+            self.road_type == VERTICAL_ROAD_VALUE_RIGHT
+            and self.grid.grid[x, y + 1] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x, y + 1)
+        elif (
+            self.road_type == VERTICAL_ROAD_VALUE_LEFT
+            and self.grid.grid[x, y - 1] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x, y - 1)
+        elif (
+            self.road_type == HORIZONTAL_ROAD_VALUE_LEFT
+            and self.grid.grid[x - 1, y] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x - 1, y)
+        elif (
+            self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT
+            and self.grid.grid[x + 1, y] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x + 1, y)
+        else:
+            return False
+
+        # Check if entrance is free
+        if self.grid.grid[new_x, new_y] not in [CAR_HEAD, CAR_BODY]:
+            self.grid.grid[self.head_position] = ROAD_CELLS[self.road_type]
+            self.head_position = new_x, new_y
+            self.grid.grid[self.head_position] = CAR_HEAD
+            return True
+        return False
+
+    def check_exit_position(self) -> tuple | None:
+        x, y = self.head_position
+        if (
+            self.grid.flag[x - 1, y]
+            == INTERSECTION_EXIT & self.grid.flag[x, y - 1]
+            == INTERSECTION_EXIT & self.grid.flag[x - 1, y - 1]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x + 1, y)
+        elif (
+            self.grid.flag[x, y - 1]
+            == INTERSECTION_EXIT & self.grid.flag[x - 1, y]
+            == INTERSECTION_EXIT & self.grid.flag[x - 1, y - 1]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x, y + 1)
+        elif (
+            self.grid.flag[x + 1, y]
+            == INTERSECTION_EXIT & self.grid.flag[x + 1, y - 1]
+            == INTERSECTION_EXIT & self.grid.flag[x, y - 1]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x - 1, y)
+        elif (
+            self.grid.flag[x, y + 1]
+            == INTERSECTION_EXIT & self.grid.flag[x + 1, y + 1]
+            == INTERSECTION_EXIT & self.grid.flag[x + 1, y]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x, y - 1)
+        else:
+            return None
+
+        if self.grid.grid[x, y] not in [CAR_HEAD, CAR_BODY]:
+            return x, y
+        return None
+
+    def get_next_rotary_position(self, x: int, y: int) -> tuple:
+        for ring in self.grid.rotary_dict:
+            if (x, y) in ring:
+                idx = ring.index((x, y))
+                next_idx = (idx + 1) % len(ring)
+                next_position = ring[next_idx]
+
+                # Check if next position is occupied by a car
+                next_x, next_y = next_position
+                if self.grid.grid[next_x, next_y] in [CAR_HEAD, CAR_BODY]:
+                    return (None, None)
+
+                return next_position
+
+        return (None, None)  # Position not found in rotary
 
     def set_road_type(self, road_type: int):
         """

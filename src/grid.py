@@ -8,6 +8,7 @@ from src.utils import (
     INTERSECTION_VALUE,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
+    INTERSECTION_EXIT,
     CAR_HEAD,
 )
 
@@ -67,6 +68,7 @@ class Grid:
         self.create_vertical_lanes()
         self.create_horizontal_lanes()
         self.create_intersections()
+        # self.create_edge_lanes()
 
     def create_edge_lanes(self):
         """
@@ -131,6 +133,7 @@ class Grid:
                 y0, y1 = j, j + self.lane_width
 
                 self.grid[x0:x1, y0:y1] = INTERSECTION_VALUE
+                self.flag[x0:x1, y0:y1] = INTERSECTION_EXIT
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 assert isinstance(ring, list)
