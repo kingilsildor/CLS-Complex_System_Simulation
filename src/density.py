@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.utils import (
-    CAR_VALUE,
+    CAR_HEAD,
     HORIZONTAL_ROAD_VALUE_LEFT,
     INTERSECTION_VALUE,
     VERTICAL_ROAD_VALUE_RIGHT,
@@ -27,7 +27,7 @@ class DensityTracker:
 
     def set_initial_cars(self):
         """Set the initial number of cars for percentage calculation."""
-        car_positions = np.where(self.grid.grid == CAR_VALUE)
+        car_positions = np.where(self.grid.grid == CAR_HEAD)
         self.initial_cars = len(car_positions[0])
 
     def calculate_road_density(self):
@@ -45,7 +45,7 @@ class DensityTracker:
         total_road_cells = np.sum(road_mask)
 
         # Get car positions
-        car_positions = np.where(self.grid.grid == CAR_VALUE)
+        car_positions = np.where(self.grid.grid == CAR_HEAD)
         cars_on_roads = 0
 
         # Check each car's position against the underlying grid
@@ -71,7 +71,7 @@ class DensityTracker:
         total_intersection_cells = np.sum(intersection_mask)
 
         # Get car positions
-        car_positions = np.where(self.grid.grid == CAR_VALUE)
+        car_positions = np.where(self.grid.grid == CAR_HEAD)
         cars_at_intersections = 0
 
         # Check each car's position against the underlying grid
@@ -102,7 +102,7 @@ class DensityTracker:
         total_system_cells = np.sum(system_mask)
 
         # Count cars in system
-        car_positions = np.where(self.grid.grid == CAR_VALUE)
+        car_positions = np.where(self.grid.grid == CAR_HEAD)
         total_cars = len(car_positions[0])
 
         # Calculate system-wide density (as decimal, like other densities)

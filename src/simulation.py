@@ -335,10 +335,12 @@ class SimulationUI:
             ):
                 pass
 
-            car = Car(self.grid, position=(x, y))
+            road_type = self.grid.grid[x, y]
+            car = Car(self.grid, position=(x, y), road_type=road_type)
             assert isinstance(car, Car)
             cars[i] = car
 
+        assert isinstance(cars, np.ndarray)
         print(f"\033[38;5;46mCreated {car_count} cars.\033[0m")
         return cars
 
@@ -356,10 +358,10 @@ class SimulationUI:
         - lane_width (int): The width of the lanes in the grid.
         - car_count (int): The number of cars to create in the simulation.
         """
-        print("\033[1;36m=== Traffic Simulation ===")
-        print(
-            f"Grid: {grid_size}x{grid_size} | Cars: {car_count} | Steps: {steps}\033[0m\n"
-        )
+        # print("\033[1;36m=== Traffic Simulation ===")
+        # print(
+        #     f"Grid: {grid_size}x{grid_size} | Cars: {car_count} | Steps: {steps}\033[0m\n"
+        # )
         assert isinstance(steps, int), f"Steps must be an integer, got {type(steps)}"
 
         # Initialize grid and density tracker
@@ -373,37 +375,37 @@ class SimulationUI:
         # Run simulation steps
         grid_states = []
         for step in range(steps):
-            density = self.density_tracker.calculate_overall_density()
-            print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
-            print(
-                f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m",
-                end=" ",
-            )
-            print(
-                f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m",
-                end=" ",
-            )
-            print(
-                f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
-                end=" ",
-            )
-            print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
+            # density = self.density_tracker.calculate_overall_density()
+            # print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
+            # print(
+            #     f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m",
+            #     end=" ",
+            # )
+            # print(
+            #     f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m",
+            #     end=" ",
+            # )
+            # print(
+            #     f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
+            #     end=" ",
+            # )
+            # print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
 
             grid_states.append(self.grid.grid.copy())
             self.grid.update_movement()
 
         # Final state
-        density = self.density_tracker.calculate_overall_density()
-        print(f"\033[1;33mStep {steps:4d}/{steps:d}\033[0m", end=" ")
-        print(
-            f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m", end=" "
-        )
-        print(f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m", end=" ")
-        print(
-            f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
-            end=" ",
-        )
-        print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
+        # density = self.density_tracker.calculate_overall_density()
+        # print(f"\033[1;33mStep {steps:4d}/{steps:d}\033[0m", end=" ")
+        # print(
+        #     f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m", end=" "
+        # )
+        # print(f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m", end=" ")
+        # print(
+        #     f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
+        #     end=" ",
+        # )
+        # print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
 
         return grid_states
 
