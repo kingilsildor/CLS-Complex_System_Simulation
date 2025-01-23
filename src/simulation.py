@@ -253,7 +253,7 @@ class SimulationUI:
         car_count = self.car_count_slider.get()
         cars = self.create_cars(car_count)
         self.grid.add_cars(cars)
-
+        # cars[1].
         _setup_plot()
 
         self.start_button.config(state=tk.DISABLED)
@@ -390,7 +390,8 @@ class SimulationUI:
             #     end=" ",
             # )
             # print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
-
+            count_car_length = np.count_nonzero(self.grid.grid == 7)
+            print(np.sum(count_car_length))
             grid_states.append(self.grid.grid.copy())
             self.grid.update_movement()
 
