@@ -124,15 +124,16 @@ class Car:
             if self.grid.flag[x, y] == INTERSECTION_EXIT:
                 if self.check_exit_position():  # Exit is free, this functions returns a tuple containing new posiition
                     new_x, new_y = self.check_exit_position()
-                    self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    # self.grid.grid[self.head_position] = INTERSECTION_VALUE
                     self.head_position = new_x, new_y
                     self.grid.grid[self.head_position] = CAR_HEAD
                 else:
                     pass  # Exit is occupied, so the car waits
             else:
-                if self.get_next_rotary_position(x, y):
+                next_position = self.get_next_rotary_position(x, y)
+                if next_position != (None, None):
                     new_x, new_y = self.get_next_rotary_position(x, y)
-                    self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    # self.grid.grid[self.head_position] = INTERSECTION_VALUE
                     self.head_position = new_x, new_y
                     self.grid.grid[self.head_position] = CAR_HEAD
                 else:
@@ -158,9 +159,11 @@ class Car:
             new_pos = self.loop_boundary(*new_pos)
 
             if self.grid.grid[new_pos] in ROAD_CELLS:
+                self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
                 self.head_position = new_pos
                 self.grid.grid[new_pos] = CAR_HEAD
             elif self.grid.grid[new_pos] in INTERSECTION_CELLS:
+                # self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
                 self.head_position = new_pos
                 self.grid.grid[new_pos] = CAR_HEAD
                 self.road_type = INTERSECTION_VALUE
