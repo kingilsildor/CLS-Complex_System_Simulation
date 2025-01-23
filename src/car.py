@@ -6,12 +6,12 @@ from src.utils import (
     CAR_HEAD,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
+    INTERSECTION_CELLS,
+    INTERSECTION_EXIT,
     INTERSECTION_VALUE,
     ROAD_CELLS,
-    INTERSECTION_CELLS,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
-    INTERSECTION_EXIT,
 )
 
 
@@ -22,7 +22,7 @@ class Car:
     The car can move within the grid, enter and exit rotaries, and follow road rules.
     """
 
-    def __init__(self, grid: Grid, position: tuple, road_type: int, car_size: int = 2):
+    def __init__(self, grid: Grid, position: tuple, road_type: int, car_size: int = 1):
         """
         Initialize the car with a given grid, position, and direction.
 
@@ -38,17 +38,13 @@ class Car:
         self.road_type = road_type
 
         if not isinstance(position, tuple) or len(position) != 2:
-            raise ValueError(f"\033[91mInvalid position {position} for the car.\033[0m")
+            raise ValueError(f"Invalid position {position} for the car.")
         if not all(isinstance(i, int) for i in position):
-            raise ValueError(
-                f"\033[91mPosition coordinates {position} must be integers.\033[0m"
-            )
+            raise ValueError(f"Position coordinates {position} must be integers.")
 
         x, y = position
         if self.grid.grid[x, y] not in ROAD_CELLS:
-            raise ValueError(
-                f"\033[91mInvalid starting position {position} for the car.\033[0m"
-            )
+            raise ValueError(f"Invalid starting position {position} for the car.")
         else:
             self.grid.grid[x, y] = CAR_HEAD
         self.head_position = position
@@ -109,6 +105,9 @@ class Car:
             y = grid_boundary - 1
         elif y >= grid_boundary:
             y = 0
+
+        assert x >= 0 and x < grid_boundary
+        assert y >= 0 and y < grid_boundary
         return x, y
 
     def move(self):
@@ -188,11 +187,11 @@ class Car:
             _move_body()
         elif self.road_type == CAR_HEAD:
             print(
-                f"\033[93mCar at {self.head_position} is blocked or spawned on the same cell.\033[0m"
+                f"Car at {self.head_position} is blocked or spawned on the same cell."
             )
         else:
             raise ValueError(
-                f"\033[91mInvalid road cell {self.road_type} for the car at {self.head_position}.\033[0m"
+                f"Invalid road cell {self.road_type} for the car at {self.head_position}."
             )
 
     def check_infront(self) -> bool:
@@ -307,7 +306,5 @@ class Car:
         Set the road type for the car to move on.
         """
         if road_type not in ROAD_CELLS:
-            raise ValueError(
-                f"\033[91mInvalid road type {road_type} for the car.\033[0m"
-            )
+            raise ValueError(f"Invalid road type {road_type} for the car.")
         self.road_type = road_type

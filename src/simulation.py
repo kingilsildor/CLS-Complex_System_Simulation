@@ -1,4 +1,5 @@
 import tkinter as tk
+
 import matplotlib
 
 matplotlib.use("TkAgg")
@@ -155,19 +156,17 @@ class SimulationUI:
         if (isinstance(min_val, int) and isinstance(max_val, float)) or (
             isinstance(min_val, float) and isinstance(max_val, int)
         ):
-            raise ValueError(
-                "\033[31mMin and max values must be of the same type.\033[0m"
-            )
+            raise ValueError("Min and max values must be of the same type.")
 
         # Check if the default value is of the same type as min and max values, and convert if not
         if isinstance(min_val, int) and not isinstance(default_val, int):
             default_val = int(default_val)
-            raise ValueError("\033[38;5;214mDefault value is set to an integer.\033[0m")
+            raise ValueError("Default value is set to an integer.")
         if (
             isinstance(min_val, float) or isinstance(max_val, float)
         ) and not isinstance(default_val, float):
             default_val = float(default_val)
-            raise ValueError("\033[38;5;214mDefault value is set to a float.\033[0m")
+            raise ValueError("Default value is set to a float.")
 
         frame = tk.Frame(self.controls_frame)
         frame.pack(pady=5)
@@ -293,7 +292,7 @@ class SimulationUI:
         Pause or resume the simulation.
         """
         if not self.animation:
-            print("\033[1;31mNo simulation running.\033[0m")
+            print("No simulation running.")
             return
 
         if not self.is_paused:
@@ -301,13 +300,13 @@ class SimulationUI:
             if hasattr(self.animation, "event_source"):
                 self.animation.event_source.stop()
             self.pause_button.config(text="Resume Simulation")
-            print("\033[1;33mSimulation paused.\033[0m")
+            print("Simulation paused.")
         else:
             self.is_paused = False
             if hasattr(self.animation, "event_source"):
                 self.animation.event_source.start()
             self.pause_button.config(text="Pause Simulation")
-            print("\033[1;33mSimulation resumed.\033[0m")
+            print("Simulation resumed.")
 
     def create_cars(self, car_count: int) -> list[Car]:
         """
@@ -343,7 +342,7 @@ class SimulationUI:
             cars[i] = car
 
         assert isinstance(cars, np.ndarray)
-        print(f"\033[38;5;46mCreated {car_count} cars.\033[0m")
+        print(f"Created {car_count} cars.")
         return cars
 
     def run_simulation_without_ui(
@@ -469,4 +468,4 @@ class SimulationUI:
         if hasattr(self, "pause_button"):
             self.pause_button.config(state=tk.NORMAL, text="Pause Simulation")
 
-        print("\033[1;33mSimulation reset.\033[0m")
+        print("Simulation reset.")
