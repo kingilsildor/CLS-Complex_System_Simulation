@@ -1,9 +1,17 @@
+import numpy as np
+
 from src.grid import Grid
 from src.utils import (
-    CAR_VALUE,
-    HORIZONTAL_ROAD_VALUE,
+    CAR_BODY,
+    CAR_HEAD,
+    HORIZONTAL_ROAD_VALUE_LEFT,
+    HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_VALUE,
-    VERTICAL_ROAD_VALUE,
+    ROAD_CELLS,
+    INTERSECTION_CELLS,
+    VERTICAL_ROAD_VALUE_LEFT,
+    VERTICAL_ROAD_VALUE_RIGHT,
+    INTERSECTION_EXIT,
 )
 
 
@@ -14,7 +22,7 @@ class Car:
     The car can move within the grid, enter and exit rotaries, and follow road rules.
     """
 
-    def __init__(self, grid: Grid, position: tuple, direction: str):
+    def __init__(self, grid: Grid, position: tuple, road_type: int, car_size: int = 2):
         """
         Initialize the car with a given grid, position, and direction.
 
@@ -22,84 +30,65 @@ class Car:
         -------
         - grid: The grid in which the car is located.
         - position (tuple): The starting position of the car on the grid (x, y).
-        - direction (str): The direction the car is facing ('N', 'S', 'E', 'W').
         """
 
         self.grid = grid
         self.in_rotary = False
         self.flag = 0
+        self.road_type = road_type
 
         if not isinstance(position, tuple) or len(position) != 2:
-            raise ValueError("\033[91mInvalid position for the car.\033[0m")
+            raise ValueError(f"\033[91mInvalid position {position} for the car.\033[0m")
         if not all(isinstance(i, int) for i in position):
-            raise ValueError("\033[91mPosition coordinates must be integers.\033[0m")
+            raise ValueError(
+                f"\033[91mPosition coordinates {position} must be integers.\033[0m"
+            )
 
         x, y = position
-        if self.grid.grid[x, y] not in [
-            VERTICAL_ROAD_VALUE,
-            HORIZONTAL_ROAD_VALUE,
-            INTERSECTION_VALUE,
-        ]:
-            raise ValueError("\033[91mInvalid starting position for the car.\033[0m")
+        if self.grid.grid[x, y] not in ROAD_CELLS:
+            raise ValueError(
+                f"\033[91mInvalid starting position {position} for the car.\033[0m"
+            )
         else:
-            self.grid.grid[x, y] = CAR_VALUE
-        self.position = position
+            self.grid.grid[x, y] = CAR_HEAD
+        self.head_position = position
 
-        # Check if the direction is valid
-        if direction not in ["N", "S", "E", "W"]:
-            raise ValueError("\033[91mInvalid direction for the car.\033[0m")
-        self.direction = direction
+        self.car_size = car_size
+        if self.car_size > 1:
+            self.create_larger_car()
 
-    def can_move_into(self, cell_code: int, check_rotary: bool = True) -> bool:
+    def create_larger_car(self):
         """
-        Check if the car can move into the specified cell based on its direction.
-
-        Params:
-        -------
-        - cell_code (int): The code representing the cell the car is trying to move into.
-        - check_rotary (bool, optional): Whether to check rotary cells. Defaults to True.
-
-        Returns:
-        --------
-        - bool: True if the car can move into the cell, False otherwise.
+        Create a larger car by adding more body cells to the car.
         """
-        if self.direction in ["N", "S"]:
-            allowed = [VERTICAL_ROAD_VALUE]
-            if check_rotary:
-                allowed.append(INTERSECTION_VALUE)
-        else:
-            allowed = [HORIZONTAL_ROAD_VALUE]
-            if check_rotary:
-                allowed.append(INTERSECTION_VALUE)
-        return cell_code in allowed
+        body_positions = np.zeros((self.car_size, 2), dtype=int)
+        x, y = self.head_position
 
-    def move_car(self) -> None:
+        # Fill in the body positions based on the road cell and direction
+        if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
+            for i in range(self.car_size):
+                x, y = self.loop_boundary(x - i - 1, y)
+                body_positions[i] = (x, y)
+        elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            for i in range(self.car_size):
+                x, y = self.loop_boundary(x + i + 1, y)
+                body_positions[i] = (x, y)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+            for i in range(self.car_size):
+                x, y = self.loop_boundary(x, y - i - 1)
+                body_positions[i] = (x, y)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            for i in range(self.car_size):
+                x, y = self.loop_boundary(x, y + i + 1)
+                body_positions[i] = (x, y)
+
+        for x, y in body_positions:
+            self.grid.grid[x, y] = CAR_BODY
+
+    def loop_boundary(self, x: int, y: int) -> tuple:
         """
-        Move the car one step based on its current direction.
-
-        The car will move unless it is inside a rotary. If inside a rotary, it will follow the rotary movement.
-
-        Returns:
-        --------
-        - None: The car moves to the next cell or stays in
-        """
-        if not self.in_rotary:
-            new_x, new_y = self.next_position(*self.position)
-            if new_x is None or new_y is None:
-                return  # No suitable next cell
-
-            next_code = self.grid.grid[new_x, new_y]
-
-            if next_code == INTERSECTION_VALUE:
-                self.enter_rotary(new_x, new_y)
-            elif self.can_move_into(next_code, check_rotary=False):
-                self.move_to(new_x, new_y, old_code=self.road_code_for_direction())
-        else:
-            self.move_rotary()
-
-    def next_position(self, x: int, y: int) -> tuple:
-        """
-        Get the next position the car will move to based on its direction.
+        Move the car to the boundary of the grid based on its current position and direction.
+        Also checks for cars in front of the current car on the other side of the boundary.
 
         Params:
         -------
@@ -108,189 +97,214 @@ class Car:
 
         Returns:
         --------
-        - tuple: The new position (x, y) or (None, None) if out of bounds.
+        - tuple: The new x and y coordinates of the car.
         """
-        if self.direction == "N" and x > 0:
-            return (x - 1, y)
-        elif self.direction == "S" and x < self.grid.size - 1:
-            return (x + 1, y)
-        elif self.direction == "E" and y < self.grid.size - 1:
-            return (x, y + 1)
-        elif self.direction == "W" and y > 0:
-            return (x, y - 1)
-        return (None, None)
+        grid_boundary = self.grid.size
 
-    def enter_rotary(self, new_x: int, new_y: int):
+        if x < 0:
+            x = grid_boundary - 1
+        elif x >= grid_boundary:
+            x = 0
+        if y < 0:
+            y = grid_boundary - 1
+        elif y >= grid_boundary:
+            y = 0
+        return x, y
+
+    def move(self):
         """
-        Enter the rotary if the car reaches an intersection.
-
-        Params:
-        -------
-        - new_x (int): The x-coordinate of the intersection.
-        - new_y (int): The y-coordinate of the intersection.
+        Move the car forward based on its current position and direction.
         """
-        x, y = self.position
-        if self.grid.grid[new_x, new_y] == INTERSECTION_VALUE:
-            self.grid.grid[x, y] = self.road_code_for_direction()
-            self.grid.grid[new_x, new_y] = CAR_VALUE
-            self.position = (new_x, new_y)
-            self.in_rotary = True
 
-    def move_rotary(self) -> None:
-        """
-        Move the car within the rotary.
+        def _move_intersection():
+            """
+            Move the car within an intersection based on its current position and direction.
+            """
+            x, y = self.head_position
+            if self.grid.flag[x, y] == INTERSECTION_EXIT:
+                if self.check_exit_position():  # Exit is free, this functions returns a tuple containing new posiition
+                    new_x, new_y = self.check_exit_position()
+                    self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    self.head_position = new_x, new_y
+                    self.grid.grid[self.head_position] = CAR_HEAD
+                else:
+                    pass  # Exit is occupied, so the car waits
+            else:
+                if self.get_next_rotary_position(x, y):
+                    new_x, new_y = self.get_next_rotary_position(x, y)
+                    self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    self.head_position = new_x, new_y
+                    self.grid.grid[self.head_position] = CAR_HEAD
+                else:
+                    pass  # Next position in the rotary is occupied so the car waits
 
-        The car moves in a circular path inside the rotary. It will exit if a suitable exit is found.
-        If no exit is found, the car will rotate within the rotary.
+        def _move_straight():
+            """
+            Move the car in a straight line based on its current position and direction.
+            """
+            x, y = self.head_position
 
-        Returns:
-        --------
-        - None: The car moves to the next cell or rotates in the rotary.
-        """
-        x, y = self.position
-        f = self.grid.flag[x, y]
+            if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
+                new_pos = (x - 1, y)
+            elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+                new_pos = (x + 1, y)
+            elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+                new_pos = (x, y - 1)
+            elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+                new_pos = (x, y + 1)
+            else:
+                return  # Invalid direction, do nothing
 
-        if f == 0:
-            # If not flagged, exit the rotary if possible
-            exit_x, exit_y = self.get_exit_position()
-            if exit_x is not None and self.can_move_into(
-                self.grid.grid[exit_x, exit_y], check_rotary=False
-            ):
-                self.grid.grid[x, y] = INTERSECTION_VALUE
-                self.grid.grid[exit_x, exit_y] = CAR_VALUE
-                self.position = (exit_x, exit_y)
-                self.in_rotary = False
-                return
+            new_pos = self.loop_boundary(*new_pos)
 
-            # Rotate in the rotary if no exit
-            rotate_x, rotate_y = self.rotate_rotary(x, y)
+            if self.grid.grid[new_pos] in ROAD_CELLS:
+                self.head_position = new_pos
+                self.grid.grid[new_pos] = CAR_HEAD
+            elif self.grid.grid[new_pos] in INTERSECTION_CELLS:
+                self.head_position = new_pos
+                self.grid.grid[new_pos] = CAR_HEAD
+                self.road_type = INTERSECTION_VALUE
 
-            # Check if next rotary cell is free
-            if (
-                rotate_x is not None
-                and self.grid.grid[rotate_x, rotate_y] == INTERSECTION_VALUE
-            ):
-                self.grid.grid[x, y] = INTERSECTION_VALUE
-                self.grid.grid[rotate_x, rotate_y] = CAR_VALUE
-                self.position = (rotate_x, rotate_y)
+        def _move_body():
+            """
+            Move the car body cells based on the new head position.
+            """
+            x, y = self.head_position
+            for _ in range(self.car_size):
+                if self.grid.grid[x, y] == CAR_BODY:
+                    self.grid.grid[x, y] = CAR_HEAD
+                x, y = self.loop_boundary(x, y)
+
+        if self.check_infront():
+            pass  # Do nothing if there is a car in front
+        elif self.road_type in ROAD_CELLS:
+            _move_straight()
+            _move_body()
+        elif self.road_type == INTERSECTION_VALUE:
+            _move_intersection()
+            _move_body()
+        elif self.road_type == CAR_HEAD:
+            print(
+                f"\033[93mCar at {self.head_position} is blocked or spawned on the same cell.\033[0m"
+            )
         else:
-            rotate_x, rotate_y = self.rotate_rotary(x, y)
-            if (
-                rotate_x is not None
-                and self.grid.grid[rotate_x, rotate_y] == INTERSECTION_VALUE
-            ):
-                self.grid.grid[x, y] = INTERSECTION_VALUE
-                self.grid.grid[rotate_x, rotate_y] = CAR_VALUE
-                self.position = (rotate_x, rotate_y)
+            raise ValueError(
+                f"\033[91mInvalid road cell {self.road_type} for the car at {self.head_position}.\033[0m"
+            )
 
-    def get_next_rotary_position(self, position: tuple) -> tuple | None:
+    def check_infront(self) -> bool:
         """
-        Get the next position in the rotary based on the current position.
-
-        Params:
-        -------
-        - position (tuple): The current position of the car (x, y).
+        Check if there is a car in front of the current car.
 
         Returns:
         --------
-        - tuple: The next position in the rotary, or None if no valid position.
-        - None: If no valid position is found.
+        - bool: True if there is a car in front, False otherwise.
         """
-        x, y = position
-        rotary_pos = [
-            (x, y + 1),  # Right
-            (x + 1, y),  # Down
-            (x, y - 1),  # Left
-            (x - 1, y),  # Up
-        ]
+        x, y = self.head_position
 
-        for pos in rotary_pos:
-            if 0 <= pos[0] < self.grid.size and 0 <= pos[1] < self.grid.size:
-                return pos
+        if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
+            x, y = self.loop_boundary(x - 1, y)
+        if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            x, y = self.loop_boundary(x + 1, y)
+        if self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+            x, y = self.loop_boundary(x, y - 1)
+        if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            x, y = self.loop_boundary(x, y + 1)
+
+        return self.grid.grid[x, y] in [CAR_HEAD, CAR_BODY]
+
+    def enter_rotary(self):
+        x, y = self.head_position
+        if (
+            self.road_type == VERTICAL_ROAD_VALUE_RIGHT
+            and self.grid.grid[x, y + 1] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x, y + 1)
+        elif (
+            self.road_type == VERTICAL_ROAD_VALUE_LEFT
+            and self.grid.grid[x, y - 1] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x, y - 1)
+        elif (
+            self.road_type == HORIZONTAL_ROAD_VALUE_LEFT
+            and self.grid.grid[x - 1, y] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x - 1, y)
+        elif (
+            self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT
+            and self.grid.grid[x + 1, y] == INTERSECTION_VALUE
+        ):
+            new_x, new_y = self.loop_boundary(x + 1, y)
+        else:
+            return False
+
+        # Check if entrance is free
+        if self.grid.grid[new_x, new_y] not in [CAR_HEAD, CAR_BODY]:
+            self.grid.grid[self.head_position] = ROAD_CELLS[self.road_type]
+            self.head_position = new_x, new_y
+            self.grid.grid[self.head_position] = CAR_HEAD
+            return True
+        return False
+
+    def check_exit_position(self) -> tuple | None:
+        x, y = self.head_position
+        if (
+            self.grid.flag[x - 1, y]
+            == INTERSECTION_EXIT & self.grid.flag[x, y - 1]
+            == INTERSECTION_EXIT & self.grid.flag[x - 1, y - 1]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x + 1, y)
+        elif (
+            self.grid.flag[x, y - 1]
+            == INTERSECTION_EXIT & self.grid.flag[x - 1, y]
+            == INTERSECTION_EXIT & self.grid.flag[x - 1, y - 1]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x, y + 1)
+        elif (
+            self.grid.flag[x + 1, y]
+            == INTERSECTION_EXIT & self.grid.flag[x + 1, y - 1]
+            == INTERSECTION_EXIT & self.grid.flag[x, y - 1]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x - 1, y)
+        elif (
+            self.grid.flag[x, y + 1]
+            == INTERSECTION_EXIT & self.grid.flag[x + 1, y + 1]
+            == INTERSECTION_EXIT & self.grid.flag[x + 1, y]
+            == INTERSECTION_EXIT
+        ):
+            x, y = self.loop_boundary(x, y - 1)
+        else:
+            return None
+
+        if self.grid.grid[x, y] not in [CAR_HEAD, CAR_BODY]:
+            return x, y
         return None
 
-    def move_boundary(self, new_x: int, new_y: int) -> tuple:
-        """
-        Move the car to the boundary of the grid.
-        """
-        if new_x < 0:
-            new_x = self.grid.size - 1
-        if new_x >= self.grid.size:
-            new_x = 0
-        if new_y < 0:
-            new_y = self.grid.size - 1
-        if new_y >= self.grid.size:
-            new_y = 0
-
-        return new_x, new_y
-
-    def right_of_way(self):
-        """
-        Check if the car has the right of way at an intersection or rotary.
-        """
-        pass  # TODO
-
-    def road_rules(self):
-        """
-        Check the road rules for the car to follow at the current position.
-        """
-        pass  # TODO
-
-    def move_to(self, new_x: int, new_y: int, old_code: int):
-        """
-        Move the car to a new position on the grid.
-
-        Params:
-        -------
-        - new_x (int): The new x-coordinate of the car.
-        - new_y (int): The new y-coordinate of the car.
-        - old_code (int): The code of the previous road the car was on.
-        """
-        x, y = self.position
-        self.grid.grid[x, y] = old_code
-        self.grid.grid[new_x, new_y] = CAR_VALUE
-        self.position = (new_x, new_y)
-
-    def road_code_for_direction(self) -> int:
-        """
-        Get the road code based on the car's direction.
-
-        Returns:
-        --------
-        - int: The road code for the direction (1 for vertical, 2 for horizontal).
-        """
-        if self.direction in ["N", "S"]:
-            return VERTICAL_ROAD_VALUE
-        else:
-            return HORIZONTAL_ROAD_VALUE
-
-    def get_exit_position(self) -> tuple:
-        """
-        Get the next position the car will move to when exiting the rotary.
-
-        Returns:
-        --------
-        - tuple: The exit position (x, y).
-        """
-        return self.next_position(*self.position)
-
-    def rotate_rotary(self, x: int, y: int) -> tuple:
-        """
-        Get the next position in the rotary for the car to rotate to.
-
-        Params:
-        -------
-        - x (int): The current x-coordinate of the car.
-        - y (int): The current y-coordinate of the car.
-
-        Returns:
-        --------
-        - tuple: The next position in the rotary, or (None, None) if no valid position.
-        """
+    def get_next_rotary_position(self, x: int, y: int) -> tuple:
         for ring in self.grid.rotary_dict:
             if (x, y) in ring:
                 idx = ring.index((x, y))
                 next_idx = (idx + 1) % len(ring)
-                return ring[next_idx]
+                next_position = ring[next_idx]
 
-        return (None, None)
+                # Check if next position is occupied by a car
+                next_x, next_y = next_position
+                if self.grid.grid[next_x, next_y] in [CAR_HEAD, CAR_BODY]:
+                    return (None, None)
+
+                return next_position
+
+        return (None, None)  # Position not found in rotary
+
+    def set_road_type(self, road_type: int):
+        """
+        Set the road type for the car to move on.
+        """
+        if road_type not in ROAD_CELLS:
+            raise ValueError(
+                f"\033[91mInvalid road type {road_type} for the car.\033[0m"
+            )
+        self.road_type = road_type
