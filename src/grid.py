@@ -8,6 +8,7 @@ from src.utils import (
     INTERSECTION_VALUE,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
+    CAR_HEAD,
 )
 
 temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
@@ -56,6 +57,8 @@ class Grid:
 
         # Store the road layout
         self.road_layout = self.grid.copy()
+
+        self.allow_rotary_entry = False  # Start with rotaries blocked
 
     def roads(self):
         """
@@ -147,8 +150,22 @@ class Grid:
         """
         Update the grid to reflect the movement of all cars.
         """
-        # Reset to road layout instead of redrawing roads
+        # Track which cars moved this step
+        moved_cars = set()
+        initial_positions = {car: car.head_position for car in self.cars}
+
+        # Reset to road layout to ensure clean state
         self.grid = self.road_layout.copy()
 
+        # First restore all car positions
+        for car in self.cars:
+            x, y = car.head_position
+            self.grid[x, y] = CAR_HEAD
+
+        # Then let cars move
         for car in self.cars:
             car.move()
+            if car.head_position != initial_positions[car]:
+                moved_cars.add(car)
+
+        return moved_cars  # Return moved cars for metrics tracking

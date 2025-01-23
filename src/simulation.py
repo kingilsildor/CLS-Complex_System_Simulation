@@ -61,6 +61,34 @@ class SimulationUI:
 
             self.canvas.draw()
 
+        def _init_metrics_display():
+            """Initialize the metrics display panel"""
+            self.metrics_frame = tk.Frame(self.controls_frame)
+            self.metrics_frame.pack(pady=10)
+
+            # Create labels for each metric
+            self.metrics_labels = {}
+            metrics = [
+                "Moving Cars",
+                "Total Cars",
+                "Average Wait",
+                "Max Wait",
+                "Congestion Rate",
+                "Cars at Intersections",
+            ]
+
+            for metric in metrics:
+                frame = tk.Frame(self.metrics_frame)
+                frame.pack(pady=2)
+
+                label = tk.Label(frame, text=f"{metric}:", width=20, anchor="w")
+                label.pack(side=tk.LEFT)
+
+                value = tk.Label(frame, text="0", width=10)
+                value.pack(side=tk.LEFT)
+
+                self.metrics_labels[metric] = value
+
         def _init_buttons():
             """Initialize control buttons"""
             self.start_button = tk.Button(
@@ -123,6 +151,7 @@ class SimulationUI:
 
             _init_sliders()
             _init_buttons()
+            _init_metrics_display()
             _init_plot()
 
         else:
@@ -275,13 +304,39 @@ class SimulationUI:
         if self.is_paused:
             return [self.im, self.title]
 
-        self.grid.update_movement()
-        density_metrics = self.density_tracker.calculate_overall_density()
+        # Randomly switch rotary access (1% chance each frame)
+        if np.random.random() < 0.1:
+            self.grid.allow_rotary_entry = not self.grid.allow_rotary_entry
+            state = "allowed" if self.grid.allow_rotary_entry else "blocked"
+            print(f"\033[1;36mRotary access is now {state}\033[0m")
+
+        # Update movement and get metrics
+        moved_cars = self.grid.update_movement()
+        metrics = self.density_tracker.update(moved_cars)
 
         self.im.set_array(self.grid.grid)
 
+        # Update metrics display
+        if self.show_ui:
+            self.metrics_labels["Moving Cars"].config(text=f"{metrics['moving_cars']}")
+            self.metrics_labels["Total Cars"].config(text=f"{metrics['total_cars']}")
+            self.metrics_labels["Average Wait"].config(
+                text=f"{metrics['average_wait_time']:.1f}"
+            )
+            self.metrics_labels["Max Wait"].config(text=f"{metrics['max_wait_time']}")
+            self.metrics_labels["Congestion Rate"].config(
+                text=f"{metrics['congestion_rate']:.1%}"
+            )
+            self.metrics_labels["Cars at Intersections"].config(
+                text=f"{metrics['intersection_cars']}"
+            )
+
         title = f"Simulation step {frame + 1}\n"
-        title += f"Cars: {density_metrics['total_cars']}"
+        title += f"Cars: {metrics['total_cars']}"
+        if self.grid.allow_rotary_entry:
+            title += " | Rotary: ✓"
+        else:
+            title += " | Rotary: ✗"
         self.ax.set_title(title)
 
         self.canvas.draw()
@@ -324,6 +379,8 @@ class SimulationUI:
         - list[Car]: List of Car objects
 
         """
+        np.random.seed(42)
+
         cars = np.zeros(car_count, dtype=object)
         for i in range(car_count):
             while (
@@ -345,7 +402,13 @@ class SimulationUI:
         return cars
 
     def run_simulation_without_ui(
-        self, steps=100, grid_size=25, blocks_size=5, lane_width=2, car_count=100
+        self,
+        steps=100,
+        grid_size=25,
+        blocks_size=5,
+        lane_width=2,
+        car_count=100,
+        output=False,
     ):
         """
         Run the simulation without UI for a specified number of steps.
@@ -358,10 +421,7 @@ class SimulationUI:
         - lane_width (int): The width of the lanes in the grid.
         - car_count (int): The number of cars to create in the simulation.
         """
-        # print("\033[1;36m=== Traffic Simulation ===")
-        # print(
-        #     f"Grid: {grid_size}x{grid_size} | Cars: {car_count} | Steps: {steps}\033[0m\n"
-        # )
+
         assert isinstance(steps, int), f"Steps must be an integer, got {type(steps)}"
 
         # Initialize grid and density tracker
@@ -374,22 +434,30 @@ class SimulationUI:
 
         # Run simulation steps
         grid_states = []
+
+        if output:
+            print("\033[1;36m=== Traffic Simulation ===")
+            print(
+                f"Grid: {grid_size}x{grid_size} | Cars: {car_count} | Steps: {steps}\033[0m\n"
+            )
+
         for step in range(steps):
-            # density = self.density_tracker.calculate_overall_density()
-            # print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
-            # print(
-            #     f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m",
-            #     end=" ",
-            # )
-            # print(
-            #     f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m",
-            #     end=" ",
-            # )
-            # print(
-            #     f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
-            #     end=" ",
-            # )
-            # print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
+            if output:
+                density = self.density_tracker.calculate_overall_density()
+                print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
+                print(
+                    f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m",
+                    end=" ",
+                )
+                print(
+                    f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m",
+                    end=" ",
+                )
+                print(
+                    f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
+                    end=" ",
+                )
+                print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
 
             grid_states.append(self.grid.grid.copy())
             self.grid.update_movement()
