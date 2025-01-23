@@ -84,14 +84,15 @@ class Grid:
         for col in range(half_block, self.size, self.blocks):
             left = col
             right = min(col + self.lane_width, self.size)
+            lane_devider = self.lane_width // 2
+
             for x in range(self.size):
                 for y in range(left, right):
                     if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = (
-                            VERTICAL_ROAD_VALUE_RIGHT
-                            if y % 2 == 0
-                            else VERTICAL_ROAD_VALUE_LEFT
-                        )
+                        if (y - left) < lane_devider:
+                            self.grid[x, y] = VERTICAL_ROAD_VALUE_LEFT
+                        else:
+                            self.grid[x, y] = VERTICAL_ROAD_VALUE_RIGHT
 
     def create_horizontal_lanes(self):
         """
@@ -103,14 +104,15 @@ class Grid:
         for row in range(half_block, self.size, self.blocks):
             top = row
             bottom = min(row + self.lane_width, self.size)
+            lane_devider = self.lane_width // 2
+
             for x in range(top, bottom):
                 for y in range(self.size):
                     if self.grid[x, y] == BLOCKS_VALUE:
-                        self.grid[x, y] = (
-                            HORIZONTAL_ROAD_VALUE_RIGHT
-                            if x % 2 == 0
-                            else HORIZONTAL_ROAD_VALUE_LEFT
-                        )
+                        if (x - top) < lane_devider:
+                            self.grid[x, y] = HORIZONTAL_ROAD_VALUE_LEFT
+                        else:
+                            self.grid[x, y] = HORIZONTAL_ROAD_VALUE_RIGHT
 
     def create_intersections(self):
         """
