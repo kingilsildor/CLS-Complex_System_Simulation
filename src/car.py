@@ -57,28 +57,33 @@ class Car:
         """
         Create a larger car by adding more body cells to the car.
         """
-        body_positions = np.zeros((self.car_body_size, 2), dtype=int)
+        self.body_positions = np.zeros((self.car_body_size, 2), dtype=int)
         x, y = self.head_position
 
         # Fill in the body positions based on the road cell and direction
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
             for i in range(self.car_body_size):
                 x, y = self.loop_boundary(x - i - 1, y)
-                body_positions[i] = (x, y)
+                self.body_positions[i] = (x, y)
         elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
             for i in range(self.car_body_size):
                 x, y = self.loop_boundary(x + i + 1, y)
-                body_positions[i] = (x, y)
+                self.body_positions[i] = (x, y)
         elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
             for i in range(self.car_body_size):
-                x, y = self.loop_boundary(x, y - i - 1)
-                body_positions[i] = (x, y)
+                x, y = self.loop_boundary(x, y + i + 1)
+                self.body_positions[i] = (x, y)
         elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
             for i in range(self.car_body_size):
-                x, y = self.loop_boundary(x, y + i + 1)
-                body_positions[i] = (x, y)
+                x, y = self.loop_boundary(x, y - i - 1)
+                self.body_positions[i] = (x, y)
+        else:
+            raise ValueError(
+                f"\033[91mInvalid road cell {self.road_type} for the car at {self.head_position}.\033[0m"
+            )
 
-        for x, y in body_positions:
+        assert len(self.body_positions) == self.car_body_size
+        for x, y in self.body_positions:
             self.grid.grid[x, y] = CAR_BODY
 
     def loop_boundary(self, x: int, y: int) -> tuple:
@@ -141,13 +146,21 @@ class Car:
         def _move_straight(x: int, y: int, car_type: int = CAR_HEAD) -> tuple:
             """
             Move the car in a straight line based on its current position and direction.
-            """
-            x, y = self.head_position
 
+            Params:
+            -------
+            - x (int): The current x-coordinate of the car.
+            - y (int): The current y-coordinate of the car.
+            - car_type (int): The type of car to move (CAR_HEAD or CAR_BODY).
+
+            Returns:
+            --------
+            - tuple: The new x and y coordinates of the car.
+            """
             if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-                new_pos = (x - 1, y)
-            elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
                 new_pos = (x + 1, y)
+            elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+                new_pos = (x - 1, y)
             elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
                 new_pos = (x, y - 1)
             elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
@@ -173,6 +186,12 @@ class Car:
             """
             Move the car body cells based on the new head position.
             """
+            if self.car_body_size == 0:
+                return
+
+            for i in range(self.car_body_size):
+                x, y = self.body_positions[i]
+                self.body_positions[i] = _move_straight(x, y, CAR_BODY)
             if self.car_body_size == 0:
                 return
 
@@ -208,9 +227,9 @@ class Car:
         x, y = self.head_position
 
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-            x, y = self.loop_boundary(x - 1, y)
-        if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
             x, y = self.loop_boundary(x + 1, y)
+        if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            x, y = self.loop_boundary(x - 1, y)
         if self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
             x, y = self.loop_boundary(x, y - 1)
         if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
