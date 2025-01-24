@@ -5,10 +5,10 @@ from src.utils import (
     BLOCKS_VALUE,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
+    INTERSECTION_EXIT,
     INTERSECTION_VALUE,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
-    INTERSECTION_EXIT,
 )
 
 temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
@@ -42,13 +42,11 @@ class Grid:
         # Ensure the number of lanes is an even number
         try:
             if lane_width % 2 != 0:
-                raise ValueError(
-                    "\033[38;5;214mNumber of lanes must be an even number.\033[0m"
-                )
+                raise ValueError("Number of lanes must be an even number.")
             self.lane_width = lane_width
         except ValueError:
             self.lane_width = lane_width + 1
-            print(f"\033[38;5;214mSetting lane width to {self.lane_width}.\033[0m")
+            print(f"Setting lane width to {self.lane_width}.")
 
         self.cars = []
         self.rotary_dict = []
