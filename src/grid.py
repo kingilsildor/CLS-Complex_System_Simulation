@@ -5,7 +5,8 @@ from src.utils import (
     BLOCKS_VALUE,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
-    INTERSECTION_INTERNAL,
+    INTERSECTION_DRIVE,
+    INTERSECTION_EXIT,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
 )
@@ -49,7 +50,7 @@ class Grid:
 
         self.cars = []
         self.rotary_dict = []
-        self.flag = np.zeros((grid_size, grid_size), dtype=int)
+        self.flag = np.full((grid_size, grid_size), INTERSECTION_DRIVE, dtype=int)
         self.roads()
 
         # Store the road layout
@@ -125,7 +126,8 @@ class Grid:
                 x0, x1 = i, i + self.lane_width
                 y0, y1 = j, j + self.lane_width
 
-                self.grid[x0:x1, y0:y1] = INTERSECTION_INTERNAL
+                self.grid[x0:x1, y0:y1] = INTERSECTION_DRIVE
+                self.flag[x0:x1, y0:y1] = INTERSECTION_EXIT
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 assert isinstance(ring, list)

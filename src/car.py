@@ -7,8 +7,8 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_CELLS,
+    INTERSECTION_DRIVE,
     INTERSECTION_EXIT,
-    INTERSECTION_INTERNAL,
     ROAD_CELLS,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
@@ -76,11 +76,11 @@ class Car:
                 self.body_positions[i] = (x, y)
         elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
             for i in range(self.car_body_size):
-                x, y = self.loop_boundary(x, y + i + 1)
+                x, y = self.loop_boundary(x, y - i - 1)
                 self.body_positions[i] = (x, y)
         elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
             for i in range(self.car_body_size):
-                x, y = self.loop_boundary(x, y - i - 1)
+                x, y = self.loop_boundary(x, y + i + 1)
                 self.body_positions[i] = (x, y)
         else:
             raise ValueError(
@@ -143,6 +143,9 @@ class Car:
 
             if self.grid.flag[x, y] == INTERSECTION_EXIT:
                 new_pos = self.check_exit_position() or (x, y)
+                new_road = self.grid.grid[new_pos]
+                print(new_road)
+                self.set_road_type(new_road)
             else:
                 new_pos = self.get_next_rotary_position(x, y)
                 if new_pos == (None, None):
@@ -177,16 +180,16 @@ class Car:
             elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
                 new_pos = (x + 1, y)
             elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-                new_pos = (x, y + 1)
-            elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
                 new_pos = (x, y - 1)
+            elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+                new_pos = (x, y + 1)
             else:
                 return (x, y)
 
             new_pos = self.loop_boundary(*new_pos)
 
             if self.grid.grid[new_pos] in INTERSECTION_CELLS:
-                self.set_road_type(INTERSECTION_INTERNAL)
+                self.set_road_type(INTERSECTION_DRIVE)
             elif self.grid.grid[new_pos] not in ROAD_CELLS:
                 return (x, y)
 
@@ -219,7 +222,7 @@ class Car:
         elif self.road_type in ROAD_CELLS:
             temp_head = _move_straight(*self.head_position)
             self.head_position = temp_head
-        elif self.road_type == INTERSECTION_INTERNAL:
+        elif self.road_type == INTERSECTION_DRIVE:
             temp_head = _move_intersection(*self.head_position)
             self.head_position = temp_head
         elif self.road_type == CAR_HEAD:
@@ -246,9 +249,9 @@ class Car:
         if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
             x, y = self.loop_boundary(x + 1, y)
         if self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-            x, y = self.loop_boundary(x, y + 1)
-        if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
             x, y = self.loop_boundary(x, y - 1)
+        if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            x, y = self.loop_boundary(x, y + 1)
 
         blocked = self.grid.grid[x, y] in [CAR_HEAD, CAR_BODY]
         return blocked
@@ -257,32 +260,30 @@ class Car:
         """
         Set the road type for the car to move on.
         """
-        old_road_type = self.road_type
         if road_type not in ROAD_CELLS and road_type not in INTERSECTION_CELLS:
             raise ValueError(f"Invalid road type {road_type} for the car.")
         self.road_type = road_type
-        assert self.road_type != old_road_type
 
     def enter_rotary(self):
         x, y = self.head_position
         if (
             self.road_type == VERTICAL_ROAD_VALUE_RIGHT
-            and self.grid.grid[x, y + 1] == INTERSECTION_INTERNAL
+            and self.grid.grid[x, y + 1] == INTERSECTION_DRIVE
         ):
             new_pos = self.loop_boundary(x, y + 1)
         elif (
             self.road_type == VERTICAL_ROAD_VALUE_LEFT
-            and self.grid.grid[x, y - 1] == INTERSECTION_INTERNAL
+            and self.grid.grid[x, y - 1] == INTERSECTION_DRIVE
         ):
             new_pos = self.loop_boundary(x, y - 1)
         elif (
             self.road_type == HORIZONTAL_ROAD_VALUE_LEFT
-            and self.grid.grid[x - 1, y] == INTERSECTION_INTERNAL
+            and self.grid.grid[x - 1, y] == INTERSECTION_DRIVE
         ):
             new_pos = self.loop_boundary(x - 1, y)
         elif (
             self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT
-            and self.grid.grid[x + 1, y] == INTERSECTION_INTERNAL
+            and self.grid.grid[x + 1, y] == INTERSECTION_DRIVE
         ):
             new_pos = self.loop_boundary(x + 1, y)
         else:
@@ -310,8 +311,8 @@ class Car:
         x, y = self.head_position
         if (
             self.grid.flag[x - 1, y]
-            == INTERSECTION_EXIT & self.grid.flag[x, y - 1]
-            == INTERSECTION_EXIT & self.grid.flag[x - 1, y - 1]
+            == INTERSECTION_EXIT & self.grid.flag[x, y + 1]
+            == INTERSECTION_EXIT & self.grid.flag[x - 1, y + 1]
             == INTERSECTION_EXIT
         ):
             x, y = self.loop_boundary(x + 1, y)
