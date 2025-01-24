@@ -6,7 +6,6 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_DRIVE,
-    INTERSECTION_EXIT,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
 )
@@ -127,7 +126,7 @@ class Grid:
                 y0, y1 = j, j + self.lane_width
 
                 self.grid[x0:x1, y0:y1] = INTERSECTION_DRIVE
-                self.flag[x0:x1, y0:y1] = INTERSECTION_EXIT
+                # self.flag[x0:x1, y0:y1] = INTERSECTION_EXIT
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 assert isinstance(ring, list)
