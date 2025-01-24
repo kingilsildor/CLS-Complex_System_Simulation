@@ -139,28 +139,23 @@ class Car:
             --------
             - tuple: The new x and y coordinates of the car.
             """
+            assert car_type in [CAR_HEAD, CAR_BODY], "Invalid car type."
+
             if self.grid.flag[x, y] == INTERSECTION_EXIT:
-                if self.check_exit_position():
-                    new_pos = self.check_exit_position()
-                else:
-                    return (x, y)  # Exit is occupied, so the car waits
+                new_pos = self.check_exit_position() or (x, y)
             else:
-                next_position = self.get_next_rotary_position(x, y)
-                if next_position != (None, None):
-                    new_pos = next_position
-                else:
-                    return (
-                        x,
-                        y,
-                    )  # Next position in the rotary is occupied so the car waits
+                new_pos = self.get_next_rotary_position(x, y)
+                if new_pos == (None, None):
+                    new_pos = (x, y)
 
-            assert car_type in [CAR_HEAD, CAR_BODY]
-            self.grid.grid[new_pos] = car_type
-
-            if not isinstance(new_pos, tuple) or len(new_pos) != 2:
+            if not (
+                isinstance(new_pos, tuple)
+                and len(new_pos) == 2
+                and all(isinstance(i, int) for i in new_pos)
+            ):
                 raise ValueError(f"Invalid position {new_pos} for the car.")
-            if not all(isinstance(i, int) for i in new_pos):
-                raise ValueError(f"Position coordinates {new_pos} must be integers.")
+
+            self.grid.grid[new_pos] = car_type
             return new_pos
 
         def _move_straight(x: int, y: int, car_type: int = CAR_HEAD) -> tuple:
@@ -186,14 +181,14 @@ class Car:
             elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
                 new_pos = (x, y - 1)
             else:
-                return (x, y)  # Invalid direction, do nothing
+                return (x, y)
 
             new_pos = self.loop_boundary(*new_pos)
-            if self.grid.grid[new_pos] not in ROAD_CELLS:
-                return (x, y)  # Invalid direction, do nothing
 
             if self.grid.grid[new_pos] in INTERSECTION_CELLS:
-                self.in_rotary = True
+                self.set_road_type(INTERSECTION_INTERNAL)
+            elif self.grid.grid[new_pos] not in ROAD_CELLS:
+                return (x, y)
 
             assert car_type in [CAR_HEAD, CAR_BODY]
             self.grid.grid[new_pos] = car_type
@@ -223,11 +218,9 @@ class Car:
             pass  # Do nothing if there is a car in front
         elif self.road_type in ROAD_CELLS:
             temp_head = _move_straight(*self.head_position)
-            print(f"New position: {temp_head} - Moving straight.")
             self.head_position = temp_head
         elif self.road_type == INTERSECTION_INTERNAL:
             temp_head = _move_intersection(*self.head_position)
-            print(f"New position: {temp_head} - Moving within intersection.")
             self.head_position = temp_head
         elif self.road_type == CAR_HEAD:
             print(
@@ -264,9 +257,11 @@ class Car:
         """
         Set the road type for the car to move on.
         """
+        old_road_type = self.road_type
         if road_type not in ROAD_CELLS and road_type not in INTERSECTION_CELLS:
             raise ValueError(f"Invalid road type {road_type} for the car.")
         self.road_type = road_type
+        assert self.road_type != old_road_type
 
     def enter_rotary(self):
         x, y = self.head_position
