@@ -82,31 +82,30 @@ class DensityTracker:
                 cars_at_intersections += 1
 
         # Calculate densities
-        road_density = (
-            cars_on_roads / self.grid.road_cells if self.grid.road_cells > 0 else 0
+        road_density = cars_on_roads / (
+            self.grid.road_cells + self.grid.intersection_cells
         )
-        intersection_density = (
-            cars_at_intersections / self.grid.intersection_cells
-            if self.grid.intersection_cells > 0
-            else 0
+        intersection_density = cars_at_intersections / (
+            self.grid.road_cells + self.grid.intersection_cells
         )
         global_density = total_cars / (
             self.grid.road_cells + self.grid.intersection_cells
         )
 
-        average_velocity = moving_cars / total_cars
+        # Calculate velocities and flow
+        average_velocity = moving_cars / total_cars if total_cars > 0 else 0
+        traffic_flow = global_density * average_velocity  # J = ρ⟨v⟩
         queue_length = total_cars - moving_cars
 
         return {
             "timestamp": len(self.metrics_history),
             "total_cars": total_cars,
             "moving_cars": moving_cars,
-            "cars_on_roads": cars_on_roads,
-            "cars_at_intersections": cars_at_intersections,
             "road_density": road_density,
             "intersection_density": intersection_density,
             "global_density": global_density,
             "average_velocity": average_velocity,
+            "traffic_flow": traffic_flow,
             "queue_length": queue_length,
         }
 
