@@ -22,7 +22,7 @@ class Car:
     The car can move within the grid, enter and exit rotaries, and follow road rules.
     """
 
-    def __init__(self, grid: Grid, position: tuple, road_type: int, car_size: int = 2):
+    def __init__(self, grid: Grid, position: tuple, road_type: int, car_size: int = 1):
         """
         Initialize the car with a given grid, position, and direction.
 
@@ -216,24 +216,29 @@ class Car:
                 x, y = self.body_positions[i]
                 self.body_positions[i] = _movement_rule(x, y, CAR_BODY)
 
+        old_pos = self.head_position
+        old_road = self.road_type
+
         if self.check_infront():
+            print(f"{self} - Checking infront.")
             return  # Do nothing if there is a car in front
-        elif self.check_rotary():
+        elif self.check_enter_rotary():
+            print(f"{self} - Checking rotary.")
             return  # Do nothing if there is a car in the rotary
         elif self.road_type in ROAD_CELLS:
+            print(f"{self} - Moving straight.")
             temp_head = _move_straight(*self.head_position)
             self.head_position = temp_head
         elif self.road_type == INTERSECTION_DRIVE:
+            print(f"{self} - Moving rotary.")
             temp_head = _move_rotary(*self.head_position)
+            print(f"Car at {self.head_position} will go to {temp_head}.")
             self.head_position = temp_head
-        elif self.road_type == CAR_HEAD:
-            print(
-                f"Car at {self.head_position} is blocked or spawned on the same cell."
-            )
         else:
             raise ValueError(
                 f"Invalid road cell {self.road_type} for the car at {self.head_position}."
             )
+        self.grid.grid[old_pos] = old_road
 
     def check_infront(self) -> bool:
         """
@@ -244,33 +249,50 @@ class Car:
         - bool: True if there is a car in front, False otherwise.
         """
         x, y = self.head_position
+        possible_pos = None
 
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-            x, y = self.loop_boundary(x - 1, y)
-        if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
-            x, y = self.loop_boundary(x + 1, y)
-        if self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-            x, y = self.loop_boundary(x, y - 1)
-        if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
-            x, y = self.loop_boundary(x, y + 1)
+            possible_pos = self.loop_boundary(x - 1, y)
+        elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            possible_pos = self.loop_boundary(x + 1, y)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+            possible_pos = self.loop_boundary(x, y - 1)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            possible_pos = self.loop_boundary(x, y + 1)
 
-        blocked = self.grid.grid[x, y] in [CAR_HEAD, CAR_BODY]
+        if possible_pos is None:
+            return False
+        possible_cell = self.grid.grid[possible_pos]
+        if possible_cell in INTERSECTION_CELLS:
+            return False
+
+        blocked = possible_cell in [CAR_HEAD, CAR_BODY]
         return blocked
 
-    def check_rotary(self) -> bool:
+    def check_enter_rotary(self) -> bool:
         x, y = self.head_position
+        possible_pos_infront, possible_pos_diagonal = None, None
 
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-            x, y = self.loop_boundary(x - 1, y + 1)
-        if self.road_type == VERTICAL_ROAD_VALUE_LEFT:
-            x, y = self.loop_boundary(x + 1, y - 1)
-        if self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-            x, y = self.loop_boundary(x - 1, y - 1)
-        if self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
-            x, y = self.loop_boundary(x + 1, y + 1)
+            possible_pos_infront = self.loop_boundary(x - 1, y)
+            possible_pos_diagonal = self.loop_boundary(x - 1, y + 1)
+        elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            possible_pos_infront = self.loop_boundary(x + 1, y)
+            possible_pos_diagonal = self.loop_boundary(x + 1, y - 1)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+            possible_pos_infront = self.loop_boundary(x, y - 1)
+            possible_pos_diagonal = self.loop_boundary(x - 1, y - 1)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            possible_pos_infront = self.loop_boundary(x, y + 1)
+            possible_pos_diagonal = self.loop_boundary(x + 1, y + 1)
 
-        blocked = self.grid.grid[x, y] in [CAR_HEAD, CAR_BODY]
-        return blocked
+        if possible_pos_infront is None or possible_pos_diagonal is None:
+            return False
+
+        if self.grid.grid[possible_pos_infront] in [CAR_BODY, CAR_HEAD]:
+            return True
+        if self.grid.grid[possible_pos_diagonal] in [CAR_BODY, CAR_HEAD]:
+            return True
 
     def set_road_type(self, road_type: int):
         """

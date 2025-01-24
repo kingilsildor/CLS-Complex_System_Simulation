@@ -146,8 +146,6 @@ class Grid:
         """
         Update the grid to reflect the movement of all cars.
         """
-        # Reset to road layout instead of redrawing roads
-        self.grid = self.road_layout.copy()
-
         for car in self.cars:
             car.move()
+        print("-----------------")
