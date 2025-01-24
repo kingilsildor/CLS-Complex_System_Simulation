@@ -23,6 +23,7 @@ def main():
     num_cars = tk.IntVar(value=10)
     max_speed = tk.IntVar(value=10)
     time_steps = tk.IntVar(value=100)
+    randomization = tk.BooleanVar(value=True)
 
     # Create sliders for adjusting parameters
     tk.Label(control_frame, text="Length of the road").pack()
@@ -55,6 +56,7 @@ def main():
             return
         if not running[0]:
             running[0] = True
+            initialize_model()
             update_simulation()
 
     def stop_simulation():
@@ -81,10 +83,19 @@ def main():
         print(f"Initializing model with length={length.get()}, num_cars={num_cars.get()}, max_speed={max_speed.get()}")
         model = NagelSchreckenberg(length.get(), num_cars.get(), max_speed.get())
 
+    def disable_random():
+        randomization.set(not randomization.get())
+        print(f"Randomization set to {randomization.get()}")
+    
+
     # Create buttons for starting, stopping, and resetting the simulation
     tk.Button(control_frame, text="Start", command=start_simulation).pack(pady=5)
     tk.Button(control_frame, text="Stop", command=stop_simulation).pack(pady=5)
     tk.Button(control_frame, text="Reset", command=reset_simulation).pack(pady=5)
+    #Check Button for randomization
+    randomization_checkbutton = tk.Checkbutton(control_frame, text="Randomization", variable=randomization, command=lambda: print(f"Randomization set to {randomization.get()}"))
+    randomization_checkbutton.pack(pady=5)
+
 
     # Initialize the model
     initialize_model()
