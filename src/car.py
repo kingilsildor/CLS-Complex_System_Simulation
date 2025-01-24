@@ -124,16 +124,20 @@ class Car:
             if self.grid.flag[x, y] == INTERSECTION_EXIT:
                 if self.check_exit_position():  # Exit is free, this functions returns a tuple containing new posiition
                     new_x, new_y = self.check_exit_position()
-                    # self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    self.grid.grid[x, y] = INTERSECTION_VALUE
                     self.head_position = new_x, new_y
                     self.grid.grid[self.head_position] = CAR_HEAD
-                else:
+
+                    if self.grid.grid[new_x, new_y] in ROAD_CELLS:
+                        self.road_type = self.compute_road_type_from_direction(
+                            x, y, new_x, new_y
+                        )
                     pass  # Exit is occupied, so the car waits
             else:
                 next_position = self.get_next_rotary_position(x, y)
                 if next_position != (None, None):
                     new_x, new_y = self.get_next_rotary_position(x, y)
-                    # self.grid.grid[self.head_position] = INTERSECTION_VALUE
+                    self.grid.grid[x, y] = INTERSECTION_VALUE
                     self.head_position = new_x, new_y
                     self.grid.grid[self.head_position] = CAR_HEAD
                 else:
@@ -158,15 +162,39 @@ class Car:
 
             new_pos = self.loop_boundary(*new_pos)
 
-            if self.grid.grid[new_pos] in ROAD_CELLS:
+            if (
+                self.grid.grid[new_pos] in ROAD_CELLS
+                or self.grid.grid[new_pos] in INTERSECTION_CELLS
+            ):
                 self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
                 self.head_position = new_pos
                 self.grid.grid[new_pos] = CAR_HEAD
-            elif self.grid.grid[new_pos] in INTERSECTION_CELLS:
+
+                if self.grid.grid[new_pos] in INTERSECTION_CELLS:
+                    self.road_type = INTERSECTION_VALUE
+            else:
+                pass
                 # self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
-                self.head_position = new_pos
-                self.grid.grid[new_pos] = CAR_HEAD
-                self.road_type = INTERSECTION_VALUE
+                # self.head_position = new_pos
+                # self.grid.grid[new_pos] = CAR_HEAD
+
+                # dx = new_pos[0] - x
+                # dy = new_pos[1] - y
+
+                # if dx == -1 and dy == 0:
+                #     self.road_type = VERTICAL_ROAD_VALUE_RIGHT
+                # elif dx == 1 and dy == 0:
+                #     self.road_type = VERTICAL_ROAD_VALUE_LEFT
+                # elif dx == 0 and dy == -1:
+                #     self.road_type = HORIZONTAL_ROAD_VALUE_LEFT
+                # elif dx == 0 and dy == 1:
+                #     self.road_type = HORIZONTAL_ROAD_VALUE_RIGHT
+
+            # elif self.grid.grid[new_pos] in INTERSECTION_CELLS:
+            #     #self.grid.grid[x, y] = ROAD_CELLS[self.road_type]
+            #     self.head_position = new_pos
+            #     self.grid.grid[new_pos] = CAR_HEAD
+            #     self.road_type = INTERSECTION_VALUE
 
         def _move_body():
             """
@@ -311,3 +339,16 @@ class Car:
                 f"\033[91mInvalid road type {road_type} for the car.\033[0m"
             )
         self.road_type = road_type
+
+    def compute_road_type_from_direction(x: int, y: int, new_x: int, new_y: int) -> int:
+        dx = new_x - x
+        dy = new_y - y
+        if dx == -1 and dy == 0:
+            return VERTICAL_ROAD_VALUE_RIGHT
+        if dx == 1 and dy == 0:
+            return VERTICAL_ROAD_VALUE_LEFT
+        if dx == 0 and dy == -1:
+            return HORIZONTAL_ROAD_VALUE_RIGHT
+        if dx == 0 and dy == 1:
+            return HORIZONTAL_ROAD_VALUE_LEFT
+        raise ValueError("Invalid direction step for road exit!")
