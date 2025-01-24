@@ -122,7 +122,38 @@ class Car:
             """
             Move the car within an intersection based on its current position and direction.
             """
-            _move_straight()
+            # For now make 3 steps to skip the intersection
+            x, y = self.head_position
+
+            # choose either straight, left or right
+            direction = np.random.choice(["straight"])
+
+            if direction == "straight":
+                if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
+                    new_pos = (x - 3, y)
+                elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+                    new_pos = (x + 3, y)
+                elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+                    new_pos = (x, y - 3)
+                elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+                    new_pos = (x, y + 3)
+
+            new_pos = self.loop_boundary(*new_pos)
+
+            # Check if the new position is a road cell AND not occupied by another car
+            if (
+                self.grid.grid[new_pos] in ROAD_CELLS
+                or INTERSECTION_VALUE
+                and self.grid.grid[new_pos] not in [CAR_HEAD, CAR_BODY]
+            ):
+                # Only mark the old position as a road block if it's not already occupied by another car
+                old_pos = self.head_position
+                if (
+                    self.grid.grid[old_pos] == CAR_HEAD
+                ):  # Only clear if it's still our car's head
+                    self.grid.grid[old_pos] = self.road_type
+                self.head_position = new_pos
+                self.grid.grid[new_pos] = CAR_HEAD
 
         def _move_straight():
             """
