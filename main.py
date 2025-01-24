@@ -10,10 +10,13 @@ if __name__ == "__main__":
     if not show_ui:
         grid_states = ui.run_simulation_without_ui(
             steps=2,
-            grid_size=30,
+            grid_size=15,
             blocks_size=10,
             lane_width=2,
-            car_count=10,
+            car_count=3,
         )
+        for state in grid_states:
+            print(state)
+            print("--------------------")
     else:
         root.mainloop()
