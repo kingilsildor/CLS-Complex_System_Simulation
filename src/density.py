@@ -3,7 +3,7 @@ import numpy as np
 from src.utils import (
     CAR_HEAD,
     HORIZONTAL_ROAD_VALUE_LEFT,
-    INTERSECTION_VALUE,
+    INTERSECTION_DRIVE,
     VERTICAL_ROAD_VALUE_RIGHT,
 )
 
@@ -67,7 +67,7 @@ class DensityTracker:
         float : Percentage of intersection cells occupied by cars (0-1)
         """
         # Get all intersection cells
-        intersection_mask = self.grid.underlying_grid == INTERSECTION_VALUE
+        intersection_mask = self.grid.underlying_grid == INTERSECTION_DRIVE
         total_intersection_cells = np.sum(intersection_mask)
 
         # Get car positions
@@ -76,7 +76,7 @@ class DensityTracker:
 
         # Check each car's position against the underlying grid
         for x, y in zip(*car_positions):
-            if self.grid.underlying_grid[x, y] == INTERSECTION_VALUE:
+            if self.grid.underlying_grid[x, y] == INTERSECTION_DRIVE:
                 cars_at_intersections += 1
 
         return (
@@ -97,7 +97,7 @@ class DensityTracker:
         system_mask = (
             (self.grid.underlying_grid == VERTICAL_ROAD_VALUE_RIGHT)
             | (self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE_LEFT)
-            | (self.grid.underlying_grid == INTERSECTION_VALUE)
+            | (self.grid.underlying_grid == INTERSECTION_DRIVE)
         )
         total_system_cells = np.sum(system_mask)
 

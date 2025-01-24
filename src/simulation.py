@@ -23,7 +23,6 @@ class SimulationUI:
         master: tk.Tk,
         show_ui: bool = True,
         colour_blind: bool = True,
-        drive_on_right: bool = True,
     ):
         """
         Initialize the simulation UI for controlling and visualizing the car traffic simulation.
@@ -94,11 +93,11 @@ class SimulationUI:
             )
 
             self.frame_rate_slider = self.create_slider(
-                "Frame Rate", default_val=40, min_val=1, max_val=500
+                "Frame Rate", default_val=400, min_val=1, max_val=500
             )
 
             self.grid_size_slider = self.create_slider(
-                "Grid Size", default_val=50, min_val=10, max_val=100
+                "Grid Size", default_val=15, min_val=10, max_val=100
             )
 
             self.blocks_size_slider = self.create_slider(
@@ -110,7 +109,7 @@ class SimulationUI:
             )
 
             self.car_count_slider = self.create_slider(
-                "Car Count", default_val=100, min_val=1, max_val=1250
+                "Car Count", default_val=3, min_val=1, max_val=1250
             )
 
         if self.show_ui:
@@ -129,7 +128,7 @@ class SimulationUI:
             _init_plot()
 
         else:
-            print("\033[38;5;46mRunning simulation without UI.\033[0m")
+            print("Running simulation without UI.")
 
     def create_slider(
         self,
