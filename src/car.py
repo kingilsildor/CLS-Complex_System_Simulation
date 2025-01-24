@@ -129,6 +129,7 @@ class Car:
             direction = np.random.choice(["straight"])
 
             if direction == "straight":
+                # Move three cells straight ahead
                 if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
                     new_pos = (x - 3, y)
                 elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
@@ -138,14 +139,42 @@ class Car:
                 elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
                     new_pos = (x, y + 3)
 
+            elif direction == "left":
+                # Move one straight, then one left
+                if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
+                    new_pos = (x - 1, y + 1)
+                    self.road_type = HORIZONTAL_ROAD_VALUE_RIGHT
+                elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+                    new_pos = (x + 1, y - 1)
+                    self.road_type = HORIZONTAL_ROAD_VALUE_LEFT
+                elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+                    new_pos = (x - 1, y - 1)
+                    self.road_type = VERTICAL_ROAD_VALUE_RIGHT
+                elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+                    new_pos = (x + 1, y + 1)
+                    self.road_type = VERTICAL_ROAD_VALUE_LEFT
+
+            elif direction == "right":
+                # Move two straight, then two right
+                if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:  # Moving upward
+                    new_pos = (x - 2, y - 2)  # Two up, two right
+                    self.road_type = HORIZONTAL_ROAD_VALUE_LEFT
+                elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:  # Moving downward
+                    new_pos = (x + 2, y + 2)  # Two down, two left
+                    self.road_type = HORIZONTAL_ROAD_VALUE_RIGHT
+                elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:  # Moving leftward
+                    new_pos = (x - 2, y + 2)  # Two left, two up
+                    self.road_type = VERTICAL_ROAD_VALUE_LEFT
+                elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:  # Moving rightward
+                    new_pos = (x + 2, y - 2)  # Two right, two down
+                    self.road_type = VERTICAL_ROAD_VALUE_RIGHT
+
             new_pos = self.loop_boundary(*new_pos)
 
             # Check if the new position is a road cell AND not occupied by another car
-            if (
-                self.grid.grid[new_pos] in ROAD_CELLS
-                or INTERSECTION_VALUE
-                and self.grid.grid[new_pos] not in [CAR_HEAD, CAR_BODY]
-            ):
+            if self.grid.grid[new_pos] in ROAD_CELLS and self.grid.grid[
+                new_pos
+            ] not in [CAR_HEAD, CAR_BODY]:
                 # Only mark the old position as a road block if it's not already occupied by another car
                 old_pos = self.head_position
                 if (

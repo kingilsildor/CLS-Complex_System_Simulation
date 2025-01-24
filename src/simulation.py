@@ -41,23 +41,36 @@ class SimulationUI:
         self.grid = None
         self.simulation = None
         self.animation = None
+        self.velocity_data = []  # Store velocity data for plotting
 
         def _init_plot():
-            """Initialize the matplotlib plot"""
-            self.fig = plt.Figure(figsize=(6, 6))
-            self.ax = self.fig.add_subplot(111)
+            """Initialize the matplotlib plots"""
+            self.fig = plt.Figure(figsize=(12, 6))
+
+            # Grid subplot
+            self.ax_grid = self.fig.add_subplot(121)
+            self.ax_grid.set_xticks([])
+            self.ax_grid.set_yticks([])
+
+            # Velocity subplot
+            self.ax_velocity = self.fig.add_subplot(122)
+            self.ax_velocity.set_xlabel("Steps")
+            self.ax_velocity.set_ylabel("Average Velocity")
+            (self.velocity_line,) = self.ax_velocity.plot(
+                [], [], "b-", label="Velocity"
+            )
+            self.ax_velocity.set_ylim(0, 1)
+            self.ax_velocity.grid(True)
+            self.ax_velocity.legend()
 
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
             self.canvas.get_tk_widget().pack()
             assert isinstance(self.canvas, FigureCanvasTkAgg)
 
-            self.ax.set_xticks([])
-            self.ax.set_yticks([])
             self.fig.tight_layout()
-            self.fig.subplots_adjust(top=0.85)
 
             title = "Welcome to SimCity 2000"
-            self.ax.set_title(title)
+            self.ax_grid.set_title(title)
 
             self.canvas.draw()
 
@@ -69,12 +82,11 @@ class SimulationUI:
             # Create labels for each metric
             self.metrics_labels = {}
             metrics = [
-                "Moving Cars",
-                "Total Cars",
-                "Average Wait",
-                "Max Wait",
-                "Congestion Rate",
-                "Cars at Intersections",
+                "Global Density",
+                "Road Density",
+                "Intersection Density",
+                "Average Velocity",
+                "Queue Length",
             ]
 
             for metric in metrics:
@@ -221,62 +233,62 @@ class SimulationUI:
         """
 
         def _restart_simulation_if_needed():
-            """
-            Restart the simulation if one is already running.
-            """
+            """Restart the simulation if one is already running."""
             if self.animation and hasattr(self.animation, "event_source"):
                 self.animation.event_source.stop()
-                self.ax.clear()
+                self.ax_grid.clear()
+                self.ax_velocity.clear()
                 self.canvas.draw()
 
-        def _initialize_grid(grid_size: int, blocks_size: int, lane_width: int) -> Grid:
-            """
-            Initialize the grid with the given parameters.
-            """
-            return Grid(
-                grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
-            )
-
         def _setup_plot():
-            """
-            Set up the plot for the simulation.
-            """
-            self.ax.clear()
-            self.fig.subplots_adjust(top=0.85)
-            cmap = "Greys" if self.colour_blind else "rainbow"
-            self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
-            self.ax.set_xticks([])
-            self.ax.set_yticks([])
-            self.canvas.draw()
+            """Set up the plot for the simulation."""
+            # Clear previous plots
+            self.ax_grid.clear()
+            self.ax_velocity.clear()
 
-        def _start_animation(steps, frame_rate: int):
-            """
-            Start the animation for the simulation.
-            """
-            self.animation = FuncAnimation(
-                self.fig,
-                self.update_simulation,
-                frames=range(steps),
-                interval=frame_rate,
-                repeat=False,
+            # Setup grid plot
+            self.ax_grid.set_xticks([])
+            self.ax_grid.set_yticks([])
+            cmap = "Greys" if self.colour_blind else "rainbow"
+            self.im = self.ax_grid.imshow(
+                self.grid.grid, cmap=cmap, interpolation="nearest"
             )
+
+            # Setup velocity plot
+            self.velocity_data = []
+            self.step_data = []
+            self.ax_velocity.set_xlabel("Steps")
+            self.ax_velocity.set_ylabel("Average")
+            self.ax_velocity.set_ylim(0, 1)
+            self.ax_velocity.grid(True)
+            (self.velocity_line,) = self.ax_velocity.plot(
+                [], [], "b-", label="Velocity"
+            )
+            self.ax_velocity.legend()
+
+            # Set x-axis limit based on total steps
+            self.ax_velocity.set_xlim(0, self.steps_slider.get())
+
+            self.fig.tight_layout()
             self.canvas.draw()
 
         _restart_simulation_if_needed()
         self.write_header()
 
+        # Reset data arrays
+        self.velocity_data = []
+
         # Read parameters from sliders
         steps = self.steps_slider.get()
         frame_rate = self.frame_rate_slider.get()
-
         grid_size = self.grid_size_slider.get()
         blocks_size = self.blocks_size_slider.get()
         lane_width = self.lane_width_slider.get()
 
-        self.steps = 0
-        self.grid = _initialize_grid(grid_size, blocks_size, lane_width)
-        assert isinstance(self.grid, Grid)
-
+        self.steps = steps
+        self.grid = Grid(
+            grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
+        )
         self.density_tracker = DensityTracker(self.grid)
 
         car_count = self.car_count_slider.get()
@@ -287,59 +299,69 @@ class SimulationUI:
 
         self.start_button.config(state=tk.DISABLED)
         self.pause_button.config(state=tk.NORMAL)
-        _start_animation(steps, frame_rate)
+
+        # Start animation
+        self.animation = FuncAnimation(
+            self.fig,
+            self.update_simulation,
+            frames=range(steps),
+            interval=frame_rate,
+            repeat=False,
+        )
+        self.canvas.draw()
 
         # Keep a reference to prevent garbage collection
-        assert isinstance(self.animation, FuncAnimation)
         self._animation_ref = self.animation
 
-    def update_simulation(self, frame: int):
-        """
-        Update the simulation for the given frame.
-
-        Params:
-        -------
-        - frame (int): The current frame number in the simulation.
-        """
+    def update_simulation(self, frame):
+        """Update the simulation for each frame."""
         if self.is_paused:
-            return [self.im, self.title]
+            return [self.im, self.velocity_line]
 
-        # Randomly switch rotary access (1% chance each frame)
+        # Randomly switch rotary access (10% chance each frame)
         if np.random.random() < 0.1:
             self.grid.allow_rotary_entry = not self.grid.allow_rotary_entry
-            state = "allowed" if self.grid.allow_rotary_entry else "blocked"
-            print(f"\033[1;36mRotary access is now {state}\033[0m")
 
-        # Update movement and get metrics
+        # Update grid and get metrics
         moved_cars = self.grid.update_movement()
         metrics = self.density_tracker.update(moved_cars)
 
-        self.im.set_array(self.grid.grid)
-
         # Update metrics display
         if self.show_ui:
-            self.metrics_labels["Moving Cars"].config(text=f"{metrics['moving_cars']}")
-            self.metrics_labels["Total Cars"].config(text=f"{metrics['total_cars']}")
-            self.metrics_labels["Average Wait"].config(
-                text=f"{metrics['average_wait_time']:.1f}"
-            )
-            self.metrics_labels["Max Wait"].config(text=f"{metrics['max_wait_time']}")
-            self.metrics_labels["Congestion Rate"].config(
-                text=f"{metrics['congestion_rate']:.1%}"
-            )
-            self.metrics_labels["Cars at Intersections"].config(
-                text=f"{metrics['intersection_cars']}"
-            )
+            metric_mappings = {
+                "Global Density": "global_density",
+                "Road Density": "road_density",
+                "Intersection Density": "intersection_density",
+                "Average Velocity": "average_velocity",
+            }
 
+            for display_name, metric_key in metric_mappings.items():
+                if display_name in self.metrics_labels and metric_key in metrics:
+                    self.metrics_labels[display_name].config(
+                        text=f"{metrics[metric_key]:.3f}"
+                    )
+
+        # Update grid title
         title = f"Simulation step {frame + 1}\n"
         title += f"Cars: {metrics['total_cars']}"
         if self.grid.allow_rotary_entry:
             title += " | Rotary: ✓"
         else:
             title += " | Rotary: ✗"
-        self.ax.set_title(title)
+        self.ax_grid.set_title(title)
 
+        # Update velocity plot
+        self.step_data.append(frame)
+        self.velocity_data.append(metrics.get("average_velocity", 0))
+        self.velocity_line.set_data(self.step_data, self.velocity_data)
+
+        # Update grid plot
+        self.im.set_array(self.grid.grid)
+
+        # Draw both plots
         self.canvas.draw()
+
+        return [self.im, self.velocity_line]
 
     def pause_simulation(self):
         """
@@ -515,10 +537,11 @@ class SimulationUI:
             pass  # Animation might already be stopped
 
         # Clear the plot
-        if hasattr(self, "ax") and self.ax:
-            self.ax.clear()
-            self.ax.set_xticks([])
-            self.ax.set_yticks([])
+        if hasattr(self, "ax_grid") and self.ax_grid:
+            self.ax_grid.clear()
+            self.ax_velocity.clear()
+            self.ax_grid.set_xticks([])
+            self.ax_grid.set_yticks([])
 
             self.canvas.draw()
 
@@ -528,6 +551,7 @@ class SimulationUI:
         self.simulation = None
         self.animation = None
         self.density_tracker = None
+        self.velocity_data = []
 
         # Reset button states
         if hasattr(self, "start_button"):

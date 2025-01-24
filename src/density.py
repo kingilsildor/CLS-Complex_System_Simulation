@@ -3,6 +3,7 @@ import numpy as np
 from src.utils import (
     CAR_HEAD,
     INTERSECTION_VALUE,
+    ROAD_CELLS,
 )
 
 
@@ -66,31 +67,47 @@ class DensityTracker:
         total_cars = len(self.grid.cars)
         moving_cars = len(moved_cars)
 
-        # Calculate average and max waiting times
-        if self.car_wait_times:
-            avg_wait = sum(self.car_wait_times.values()) / len(self.car_wait_times)
-            max_wait = max(self.car_wait_times.values())
-        else:
-            avg_wait = max_wait = 0
+        # Count cars on roads and intersections
+        cars_on_roads = 0
+        cars_at_intersections = 0
 
-        # Calculate congestion rate (percentage of cars not moving)
-        congestion = 1 - (moving_cars / total_cars) if total_cars > 0 else 0
+        for car in self.grid.cars:
+            x, y = car.head_position
+            cell_type = self.grid.road_layout[
+                x, y
+            ]  # Use road_layout to check original cell type
+            if cell_type in ROAD_CELLS:
+                cars_on_roads += 1
+            elif cell_type == INTERSECTION_VALUE:
+                cars_at_intersections += 1
 
-        # Count cars at intersections
-        intersection_cars = sum(
-            1
-            for car in self.grid.cars
-            if self.grid.grid[car.head_position] == INTERSECTION_VALUE
+        # Calculate densities
+        road_density = (
+            cars_on_roads / self.grid.road_cells if self.grid.road_cells > 0 else 0
         )
+        intersection_density = (
+            cars_at_intersections / self.grid.intersection_cells
+            if self.grid.intersection_cells > 0
+            else 0
+        )
+        global_density = total_cars / (
+            self.grid.road_cells + self.grid.intersection_cells
+        )
+
+        average_velocity = moving_cars / total_cars
+        queue_length = total_cars - moving_cars
 
         return {
             "timestamp": len(self.metrics_history),
             "total_cars": total_cars,
             "moving_cars": moving_cars,
-            "average_wait_time": avg_wait,
-            "max_wait_time": max_wait,
-            "congestion_rate": congestion,
-            "intersection_cars": intersection_cars,
+            "cars_on_roads": cars_on_roads,
+            "cars_at_intersections": cars_at_intersections,
+            "road_density": road_density,
+            "intersection_density": intersection_density,
+            "global_density": global_density,
+            "average_velocity": average_velocity,
+            "queue_length": queue_length,
         }
 
     def get_history(self):
