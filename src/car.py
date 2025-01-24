@@ -41,6 +41,20 @@ class Car:
         pass
 
     def get_boundary_pos(self, x: int, y: int) -> tuple:
+        """
+        Get the boundary position of the grid.
+        Return the position on the other side of the grid.
+
+        Parameters:
+        -----------
+        - x (int): The x position of the car.
+        - y (int): The y position of the car.
+
+        Returns:
+        --------
+        - x (int): The new x position of the car.
+        - y (int): The new y position of the car.
+        """
         grid_boundary = self.grid.size
 
         x = x % grid_boundary
@@ -51,13 +65,37 @@ class Car:
         return x, y
 
     def return_infront(self, possible_pos: tuple) -> int:
+        """
+        Return the cell in front of the car.
+
+        Parameters:
+        -----------
+        - possible_pos (tuple): The possible position of the car.
+
+        Returns:
+        --------
+        - possible_cell (int): The cell value of the cell in front of the car.
+        """
         possible_cell = self.grid.grid[possible_pos]
         assert isinstance(possible_cell, np.int64)
         return possible_cell
 
     def return_diagonal(self, possible_pos: tuple) -> int:
+        """
+        Return the diagonal cell of the car.
+
+        Parameters:
+        -----------
+        - possible_pos (tuple): The possible position of the car.
+
+        Returns:
+        --------
+        - possible_cell (int): The cell value of the diagonal cell.
+        """
+
         infront_x, infront_y = possible_pos
 
+        # Get the diagonal cell
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
             possible_pos = self.get_boundary_pos(infront_x, infront_y + 1)
         elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
@@ -72,15 +110,24 @@ class Car:
         return possible_cell
 
     def move(self):
+        """
+        Move the car to the next cell controller function.
+        """
+        # TODO write the other move functions as a subfunction of this
+
         if self.on_rotary:
             self.move_rotary()
         else:
             self.move_straight()
 
     def move_straight(self):
+        """
+        Move the car straight.
+        """
         current_x, current_y = self.head_position
         possible_pos = None
 
+        # Move the car to the next cell
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
             possible_pos = self.get_boundary_pos(current_x - 1, current_y)
         elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
@@ -109,9 +156,17 @@ class Car:
         self.set_car_location(possible_pos)
 
     def move_rotary(self):
+        """
+        Move the car on the rotary.
+
+        Returns:
+        --------
+        None if the car cannot move to the next cell.
+        """
         current_x, current_y = self.head_position
         possible_pos = None
 
+        # Move the car to the next cell and change the road type to turn
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
             possible_pos = self.get_boundary_pos(current_x - 1, current_y)
             self.set_car_road_type(HORIZONTAL_ROAD_VALUE_LEFT)
@@ -135,10 +190,18 @@ class Car:
         if possible_cell in [CAR_HEAD, CAR_BODY]:
             return
         # Check if the car can exit the rotary
+        # TODO
 
         self.set_car_location(possible_pos)
 
     def set_car_location(self, new_pos: tuple):
+        """
+        Set the car location to the new position.
+
+        Parameters:
+        -----------
+        - new_pos (tuple): The new position of the car.
+        """
         old_pos = self.head_position
         original_old_cell = self.road_type
 
@@ -146,12 +209,20 @@ class Car:
         self.head_position = new_pos
         self.grid.grid[new_pos] = CAR_HEAD
 
+        # Update the car body to the new position
         if any(old_pos in ring for ring in self.grid.rotary_dict):
             self.grid.grid[old_pos] = INTERSECTION_DRIVE
         else:
             self.grid.grid[old_pos] = original_old_cell
 
     def set_car_road_type(self, road_type: int):
+        """
+        Set the road type of the car.
+
+        Parameters:
+        -----------
+        - road_type (int): The new road type of the car.
+        """
         assert isinstance(road_type, int)
         if road_type not in ROAD_CELLS and road_type not in INTERSECTION_CELLS:
             raise ValueError(f"Invalid road type {road_type} for the car.")
