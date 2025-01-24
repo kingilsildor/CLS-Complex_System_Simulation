@@ -7,7 +7,6 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_CELLS,
-    INTERSECTION_DRIVE,
     ROAD_CELLS,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
@@ -203,17 +202,12 @@ class Car:
         - new_pos (tuple): The new position of the car.
         """
         old_pos = self.head_position
-        original_old_cell = self.road_type
 
         assert len(new_pos) == 2 and all(isinstance(p, int) for p in new_pos)
         self.head_position = new_pos
         self.grid.grid[new_pos] = CAR_HEAD
 
-        # Update the car body to the new position
-        if any(old_pos in ring for ring in self.grid.rotary_dict):
-            self.grid.grid[old_pos] = INTERSECTION_DRIVE
-        else:
-            self.grid.grid[old_pos] = original_old_cell
+        self.grid.grid[old_pos] = self.grid.road_layout[old_pos]
 
     def set_car_road_type(self, road_type: int):
         """
