@@ -3,6 +3,9 @@ import random
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import scrolledtext
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 
 from models.nagel_schreckenberg import NagelSchreckenberg
 
@@ -49,6 +52,28 @@ def main():
     output_lines = []
     running = [False]
     model = None
+    speed_data = []
+    density_data = []
+
+    # Set up the matplotlib figure and axis
+    fig, ax = plt.subplots()
+    line, = ax.plot([], [], 'bo')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, max_speed.get())
+    ax.set_xlabel("Density (cars per cell)")
+    ax.set_ylabel("Average Speed (cells per time step)")
+    ax.set_title("Density vs. Average Speed")
+
+    def init():
+        line.set_data([], [])
+        return line,
+
+    def update_plot(frame):
+        line.set_data(density_data, speed_data)
+        return line,
+
+    ani = FuncAnimation(fig, update_plot, init_func=init, blit=True)
+
 
     def start_simulation():
         if num_cars.get() > length.get():
@@ -67,6 +92,8 @@ def main():
         step_counter[0] = 0
         output_lines.clear()
         text_widget.delete(1.0, tk.END)
+        #speed_data.clear()
+        #density_data.clear()
         initialize_model()
 
     def update_simulation():
@@ -75,8 +102,14 @@ def main():
             output_lines.append(model.visualize())
             text_widget.insert(tk.END, model.visualize() + "\n")
             text_widget.see(tk.END)  # Scroll to the end
+            avg_speed = model.total_speed / num_cars.get() # Average speed of cars
+            speed_data.append(avg_speed)
+            density = num_cars.get() / length.get()
+            density_data.append(density)  # Collect density data
             step_counter[0] += 1
             root.after(100, update_simulation)  # Schedule the next update
+        #else:
+        #    plot_density_vs_speed()
 
     def initialize_model():
         nonlocal model
@@ -87,18 +120,32 @@ def main():
         randomization.set(not randomization.get())
         print(f"Randomization set to {randomization.get()}")
     
+    def plot_density_vs_speed():
+        plt.show()
+
+        #density = num_cars.get() / length.get()
+        #avg_speed = np.mean(speed_data)
+        #plt.figure()
+        #plt.scatter(density, avg_speed)
+        #plt.xlabel("Density (cars per cell)")
+        #plt.ylabel("Average Speed (cells per time step)")
+        #plt.title("Density vs. Average Speed")
+        #plt.show()
 
     # Create buttons for starting, stopping, and resetting the simulation
     tk.Button(control_frame, text="Start", command=start_simulation).pack(pady=5)
     tk.Button(control_frame, text="Stop", command=stop_simulation).pack(pady=5)
     tk.Button(control_frame, text="Reset", command=reset_simulation).pack(pady=5)
+
     #Check Button for randomization
     randomization_checkbutton = tk.Checkbutton(control_frame, text="Randomization", variable=randomization, command=lambda: print(f"Randomization set to {randomization.get()}"))
     randomization_checkbutton.pack(pady=5)
 
-
     # Initialize the model
     initialize_model()
+
+    #show plot window
+    plt.show(block=False)
 
     # Run the tkinter main loop
     root.mainloop()

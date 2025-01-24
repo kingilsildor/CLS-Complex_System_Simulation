@@ -9,6 +9,7 @@ class NagelSchreckenberg:
         self.randomization = randomization
         self.road = [0] * road_length  # 0 represents empty space, 1 represents a car
         self.speeds = [0] * num_cars  # Initialize speeds of cars
+        self.total_speed = 0 # Initialize total speed
 
         # Validate / Assert parameters
         if self.num_cars > self.road_length:
@@ -27,6 +28,7 @@ class NagelSchreckenberg:
         new_road = [0] * self.road_length
         new_speeds = [0] * self.num_cars
         car_indices = [i for i, x in enumerate(self.road) if x == 1]
+        self.total_speed = 0 # Reset total speed for time step
 
         for i, car_index in enumerate(car_indices):
             speed = self.speeds[i]
@@ -44,6 +46,7 @@ class NagelSchreckenberg:
             new_position = (car_index + speed) % self.road_length
             new_road[new_position] = 1
             new_speeds[i] = speed
+            self.total_speed += speed # Add speed to total speed
 
         self.road = new_road
         self.speeds = new_speeds
