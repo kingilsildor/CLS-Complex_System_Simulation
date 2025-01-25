@@ -1,6 +1,5 @@
 import numpy as np
 
-# import test_case as test_case
 from src.utils import (
     BLOCKS_VALUE,
     HORIZONTAL_ROAD_VALUE_LEFT,
@@ -127,7 +126,6 @@ class Grid:
                 y0, y1 = j, j + self.lane_width
 
                 self.grid[x0:x1, y0:y1] = INTERSECTION_DRIVE
-                # self.flag[x0:x1, y0:y1] = INTERSECTION_EXIT
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 assert isinstance(ring, list)
@@ -149,4 +147,4 @@ class Grid:
         """
         for car in self.cars:
             car.move()
-        print("-----------------")
+        # print("--------------------")

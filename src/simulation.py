@@ -335,8 +335,7 @@ class SimulationUI:
             ):
                 pass
 
-            road_type = self.grid.grid[x, y]
-            car = Car(self.grid, position=(x, y), road_type=road_type)
+            car = Car(self.grid, position=(x, y))
             assert isinstance(car, Car)
             cars[i] = car
 
@@ -390,8 +389,8 @@ class SimulationUI:
             #     end=" ",
             # )
             # print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
-            count_car_length = np.count_nonzero(self.grid.grid == 7)
-            print(np.sum(count_car_length))
+            # count_car_length = np.count_nonzero(self.grid.grid == 7)
+            # print(np.sum(count_car_length))
             grid_states.append(self.grid.grid.copy())
             self.grid.update_movement()
 
