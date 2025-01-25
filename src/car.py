@@ -158,7 +158,7 @@ class Car:
             CAR_HEAD,
             CAR_BODY,
         ]:
-            self.on_rotary = True
+            self.set_car_rotary(True)
         self.set_car_location(possible_pos)
 
     def move_rotary(self):
@@ -199,9 +199,12 @@ class Car:
         # TODO
 
         self.set_car_location(possible_pos)
-        self.flag = EXIT_ROTARY
+        self.set_car_rotary_flag(EXIT_ROTARY)
 
     def exit_rotary(self):
+        """
+        Move the car out of the rotary.
+        """
         current_x, current_y = self.head_position
         possible_pos = None
 
@@ -228,9 +231,9 @@ class Car:
         # Check if no car is in front
         if possible_cell in [CAR_HEAD, CAR_BODY]:
             return
-        # Check if the car can enter the rotary
+        # Check if the next cell is not on the rotary
         if possible_cell not in INTERSECTION_CELLS:
-            self.on_rotary = False
+            self.set_car_rotary(False)
         self.set_car_location(possible_pos)
 
     def set_car_location(self, new_pos: tuple):
@@ -261,3 +264,27 @@ class Car:
         if road_type not in ROAD_CELLS and road_type not in INTERSECTION_CELLS:
             raise ValueError(f"Invalid road type {road_type} for the car.")
         self.road_type = road_type
+
+    def set_car_rotary_flag(self, flag: int):
+        """
+        Set the rotary flag of the car.
+
+        Parameters:
+        -----------
+        - flag (int): The new rotary flag of the car.
+        """
+        assert isinstance(flag, int)
+        if flag not in [0, 1]:
+            raise ValueError(f"Invalid rotary flag {flag} for the car.")
+        self.flag = flag
+
+    def set_car_rotary(self, rotary: bool):
+        """
+        Set the rotary flag of the car.
+
+        Parameters:
+        -----------
+        - rotary (bool): The new rotary flag of the car.
+        """
+        assert isinstance(rotary, bool)
+        self.on_rotary = rotary
