@@ -16,6 +16,13 @@ from src.utils import (
     ROAD_CELLS,
 )
 
+CAR_DIRECTION = {
+    1: "⬇️",
+    2: "⬆️",
+    3: "⬅️",
+    4: "➡️",
+}
+
 
 class SimulationUI:
     def __init__(
@@ -210,14 +217,18 @@ class SimulationUI:
 
         def _setup_plot():
             """
-            Set up the plot for the simulation.
+            Set up the plot for the simulation, including grid values and coordinates.
             """
             self.ax.clear()
             self.fig.subplots_adjust(top=0.85)
+
             cmap = "Greys" if self.colour_blind else "rainbow"
             self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
+
+            # Remove tick marks
             self.ax.set_xticks([])
             self.ax.set_yticks([])
+
             self.canvas.draw()
 
         def _start_animation(steps, frame_rate: int):
@@ -283,6 +294,28 @@ class SimulationUI:
         title = f"Simulation step {frame + 1}\n"
         title += f"Cars: {density_metrics['total_cars']}"
         self.ax.set_title(title)
+
+        # Remove previous text annotations
+        if hasattr(self, "text_annotations"):
+            for txt in self.text_annotations:
+                txt.remove()
+
+        self.text_annotations = []
+
+        # Add text annotations for car directions
+        for car in self.grid.cars:
+            i, j = car.head_position
+            car_direction = CAR_DIRECTION[car.road_type]
+            text = self.ax.text(
+                j,
+                i,
+                car_direction,
+                ha="center",
+                va="center",
+                fontsize=10,
+                color="white",
+            )
+            self.text_annotations.append(text)
 
         self.canvas.draw()
 
