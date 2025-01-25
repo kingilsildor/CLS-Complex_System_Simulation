@@ -1,12 +1,24 @@
+# Description: This file contains the constants used in the project.
+# Grid values
 BLOCKS_VALUE = 0
 VERTICAL_ROAD_VALUE_LEFT = 1
 VERTICAL_ROAD_VALUE_RIGHT = 2
 HORIZONTAL_ROAD_VALUE_LEFT = 3
 HORIZONTAL_ROAD_VALUE_RIGHT = 4
+
+# Intersection values
 INTERSECTION_DRIVE = 5
 INTERSECTION_EXIT = 6
+
+# Car values
 CAR_HEAD = 7
 CAR_BODY = 10
+
+# Rotary flags
+STAY_ON_ROTARY = 0
+EXIT_ROTARY = 1
+
+# File type
 FILE_EXTENSION = "txt"
 
 # Density tracking constants

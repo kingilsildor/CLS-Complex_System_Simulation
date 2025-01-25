@@ -4,6 +4,7 @@ from src.grid import Grid
 from src.utils import (
     CAR_BODY,
     CAR_HEAD,
+    EXIT_ROTARY,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_CELLS,
@@ -28,6 +29,7 @@ class Car:
         self.on_rotary = True if road_type in INTERSECTION_CELLS else False
 
         self.head_position = position
+        self.flag = EXIT_ROTARY
 
         # Setup car size
         self.car_body_size = car_size - 1
@@ -114,9 +116,14 @@ class Car:
         """
         # TODO write the other move functions as a subfunction of this
 
-        if self.on_rotary:
+        if self.on_rotary and self.flag == EXIT_ROTARY:
+            print("exit_rotary")
+            self.exit_rotary()
+        elif self.on_rotary:
+            print("move_rotary")
             self.move_rotary()
         else:
+            print("move_straight")
             self.move_straight()
 
     def move_straight(self):
@@ -191,6 +198,39 @@ class Car:
         # Check if the car can exit the rotary
         # TODO
 
+        self.set_car_location(possible_pos)
+        self.flag = EXIT_ROTARY
+
+    def exit_rotary(self):
+        current_x, current_y = self.head_position
+        possible_pos = None
+
+        # Move the car to the next cell on the right and change the road type to straight
+        if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
+            possible_pos = self.get_boundary_pos(current_x, current_y + 1)
+            self.set_car_road_type(HORIZONTAL_ROAD_VALUE_RIGHT)
+        elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            possible_pos = self.get_boundary_pos(current_x, current_y - 1)
+            self.set_car_road_type(HORIZONTAL_ROAD_VALUE_LEFT)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            possible_pos = self.get_boundary_pos(current_x + 1, current_y)
+            self.set_car_road_type(VERTICAL_ROAD_VALUE_LEFT)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+            possible_pos = self.get_boundary_pos(current_x - 1, current_y)
+            self.set_car_road_type(VERTICAL_ROAD_VALUE_RIGHT)
+
+        assert possible_pos is not None
+        possible_cell = self.return_infront(possible_pos)
+
+        # Check if the car is on a road
+        if possible_cell not in ROAD_CELLS and possible_cell not in INTERSECTION_CELLS:
+            return
+        # Check if no car is in front
+        if possible_cell in [CAR_HEAD, CAR_BODY]:
+            return
+        # Check if the car can enter the rotary
+        if possible_cell not in INTERSECTION_CELLS:
+            self.on_rotary = False
         self.set_car_location(possible_pos)
 
     def set_car_location(self, new_pos: tuple):

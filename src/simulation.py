@@ -207,14 +207,32 @@ class SimulationUI:
 
         def _setup_plot():
             """
-            Set up the plot for the simulation.
+            Set up the plot for the simulation, including grid values and coordinates.
             """
             self.ax.clear()
             self.fig.subplots_adjust(top=0.85)
+
             cmap = "Greys" if self.colour_blind else "rainbow"
             self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
+
+            # Remove tick marks
             self.ax.set_xticks([])
             self.ax.set_yticks([])
+
+            # # Add text annotations for each cell
+            # for i in range(self.grid.grid.shape[0]):
+            #     for j in range(self.grid.grid.shape[1]):
+            #         coord_text = f"({i},{j})"  # Format: (row,col) \n value
+            #         self.ax.text(
+            #             j,
+            #             i,
+            #             coord_text,
+            #             ha="center",
+            #             va="center",
+            #             fontsize=10,
+            #             color="black",
+            #         )
+
             self.canvas.draw()
 
         def _start_animation(steps, frame_rate: int):
