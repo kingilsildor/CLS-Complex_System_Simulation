@@ -13,6 +13,13 @@ from src.utils import (
     ROAD_CELLS,
 )
 
+CAR_DIRECTION = {
+    1: "⬇️",
+    2: "⬆️",
+    3: "⬅️",
+    4: "➡️",
+}
+
 
 class SimulationUI:
     def __init__(
@@ -219,20 +226,6 @@ class SimulationUI:
             self.ax.set_xticks([])
             self.ax.set_yticks([])
 
-            # # Add text annotations for each cell
-            # for i in range(self.grid.grid.shape[0]):
-            #     for j in range(self.grid.grid.shape[1]):
-            #         coord_text = f"({i},{j})"  # Format: (row,col) \n value
-            #         self.ax.text(
-            #             j,
-            #             i,
-            #             coord_text,
-            #             ha="center",
-            #             va="center",
-            #             fontsize=10,
-            #             color="black",
-            #         )
-
             self.canvas.draw()
 
         def _start_animation(steps, frame_rate: int):
@@ -298,6 +291,28 @@ class SimulationUI:
         title = f"Simulation step {frame + 1}\n"
         title += f"Cars: {density_metrics['total_cars']}"
         self.ax.set_title(title)
+
+        # Remove previous text annotations
+        if hasattr(self, "text_annotations"):
+            for txt in self.text_annotations:
+                txt.remove()
+
+        self.text_annotations = []
+
+        # Add text annotations for car directions
+        for car in self.grid.cars:
+            i, j = car.head_position
+            car_direction = CAR_DIRECTION[car.road_type]
+            text = self.ax.text(
+                j,
+                i,
+                car_direction,
+                ha="center",
+                va="center",
+                fontsize=10,
+                color="white",
+            )
+            self.text_annotations.append(text)
 
         self.canvas.draw()
 
