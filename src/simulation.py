@@ -108,9 +108,9 @@ class SimulationUI:
                 "Blocks Size", default_val=10, min_val=2, max_val=50
             )
 
-            self.lane_width_slider = self.create_slider(
-                "Lane Width", default_val=2, min_val=2, max_val=30
-            )
+            # self.lane_width_slider = self.create_slider(
+            #     "Lane Width", default_val=2, min_val=2, max_val=30
+            # )
 
             self.car_count_slider = self.create_slider(
                 "Car Count", default_val=3, min_val=1, max_val=1250
