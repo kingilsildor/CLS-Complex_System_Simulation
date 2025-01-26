@@ -3,6 +3,7 @@ import random
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import scrolledtext
+from tkinter import filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -13,7 +14,7 @@ def main():
     # Initialize the tkinter window
     root = tk.Tk()
     root.title("Nagel-Schreckenberg Simulation")
-    root.geometry("800x600")  # Set a fixed size for the window
+    root.geometry("1600x800")  # Set a fixed size for the window
 
     # Create frames for layout
     control_frame = tk.Frame(root)
@@ -27,10 +28,24 @@ def main():
     root.grid_columnconfigure(2, weight=1)
     root.grid_rowconfigure(0, weight=1)
     
-    #control_frame = tk.Frame(root)
-    #control_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
-    #output_frame = tk.Frame(root)
-    #output_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    # Create a canvas for the plot frame with a scrollbar
+    plot_canvas = tk.Canvas(root)
+    plot_canvas.grid(row=0, column=2, sticky="nsew", padx=10, pady=10)
+    plot_scrollbar = tk.Scrollbar(root, orient=tk.VERTICAL, command=plot_canvas.yview)
+    plot_scrollbar.grid(row=0, column=3, sticky="ns")
+    plot_canvas.configure(yscrollcommand=plot_scrollbar.set)
+
+    plot_frame = tk.Frame(plot_canvas)
+    plot_canvas.create_window((0, 0), window=plot_frame, anchor="nw")
+
+    root.grid_columnconfigure(1, weight=1)
+    root.grid_columnconfigure(2, weight=1)
+    root.grid_rowconfigure(0, weight=1)
+
+    def on_frame_configure(event):
+        plot_canvas.configure(scrollregion=plot_canvas.bbox("all"))
+
+    plot_frame.bind("<Configure>", on_frame_configure)
 
     # Simulation parameters
     length = tk.IntVar(value=100)
@@ -66,6 +81,7 @@ def main():
     speed_data = []
     density_data = []
     flow_data = []
+    time_space_data = []
 
     # Set up the matplotlib figure and axis for density vs speed plot
     fig1, ax1 = plt.subplots()
@@ -111,6 +127,42 @@ def main():
 
     ani2 = FuncAnimation(fig2, update_plot2, init_func=init2, blit=True, frames=time_steps.get())
 
+    # Set up the matplotlib figure and axis for time-space diagram
+    fig3, ax3 = plt.subplots()
+    ax3.set_xlim(0, length.get())
+    ax3.set_ylim(0, time_steps.get())
+    ax3.set_xlabel("Position")
+    ax3.set_ylabel("Time")
+    ax3.set_title("Time-Space Diagram")
+
+    canvas3 = FigureCanvasTkAgg(fig3, master=plot_frame)
+    canvas3.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+
+    def update_plot3(frame):
+        ax3.clear()
+        ax3.set_xlim(0, length.get())
+        ax3.set_ylim(0, time_steps.get())
+        ax3.set_xlabel("Position")
+        ax3.set_ylabel("Time")
+        ax3.set_title("Time-Space Diagram")
+        for t, positions in enumerate(time_space_data):
+            ax3.scatter(positions, [t] * len(positions), c='black', s=1)
+        return ax3,
+
+    ani3 = FuncAnimation(fig3, update_plot3, blit=True, frames=time_steps.get())
+
+    def save_plots():
+        update_plot3(None)
+        fig3.canvas.draw_idle()
+        plt.pause(0.1)
+        
+        file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
+        if file_path:
+            fig1.savefig(f"{file_path}_density_vs_speed.png")
+            fig2.savefig(f"{file_path}_density_vs_flow.png")
+            fig3.savefig(f"{file_path}_time_space_diagram.png")
+            messagebox.showinfo("Save Plots", "Plots saved successfully!")
+
     def start_simulation():
         if num_cars.get() > length.get():
             messagebox.showerror("Parameter Error", "Number of cars cannot be greater than the length of the road")
@@ -145,6 +197,8 @@ def main():
             density_data.append(density)  # Collect density data
             flow = model.flow / length.get()  # Calculate flow
             flow_data.append(flow)  # Collect flow data
+            positions = [i for i, x in enumerate(model.road) if x == 1]
+            time_space_data.append(positions)  # Collect time-space data
             step_counter[0] += 1
             root.after(100, update_simulation)  # Schedule the next update
         #else:
@@ -159,6 +213,7 @@ def main():
         stop_simulation()
         ani1.event_source.stop()
         ani2.event_source.stop()
+        ani3.event_source.stop()
         root.quit()
         root.destroy()
 
@@ -173,6 +228,7 @@ def main():
     tk.Button(control_frame, text="Start", command=start_simulation).pack(pady=5)
     tk.Button(control_frame, text="Stop", command=stop_simulation).pack(pady=5)
     tk.Button(control_frame, text="Reset", command=reset_simulation).pack(pady=5)
+    tk.Button(control_frame, text="Save Plots", command=save_plots).pack(pady=5)
 
     #Check Button for randomization
     randomization_checkbutton = tk.Checkbutton(control_frame, text="Randomization", variable=randomization, command=lambda: print(f"Randomization set to {randomization.get()}"))

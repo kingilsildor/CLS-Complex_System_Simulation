@@ -69,6 +69,7 @@ class NagelSchreckenberg:
 
     def visualize(self):
         # Return the string representation of the road
-        return ''.join(['⬛' if x == 1 else '  ' for x in self.road])
-        #return ''.join(['⬛' if x == 1 else '⬜' for x in self.road])
+        #return ''.join(['⬛' if x == 1 else '  ' for x in self.road])
+        return ''.join(['██' if x == 1 else '\u00A0\u00A0' for x in self.road])
+        #return ''.join(['⬛' if x == 1 else '■' for x in self.road])
         #return ''.join(['🚗' if x == 1 else '.' for x in self.road])
