@@ -10,10 +10,14 @@ class NagelSchreckenberg:
         self.road = [0] * road_length  # 0 represents empty space, 1 represents a car
         self.speeds = [0] * num_cars  # Initialize speeds of cars
         self.total_speed = 0 # Initialize total speed
+        self.flow = 0  # Initialize flow
 
         # Validate / Assert parameters
         if self.num_cars > self.road_length:
             raise ValueError("Number of cars cannot be greater than the length of the road")
+        
+        if self.num_cars < 1:
+            raise ValueError("Number of cars must be at least 1")
 
         self.initialize()
 
@@ -29,6 +33,8 @@ class NagelSchreckenberg:
         new_speeds = [0] * self.num_cars
         car_indices = [i for i, x in enumerate(self.road) if x == 1]
         self.total_speed = 0 # Reset total speed for time step
+        self.flow = 0  # Reset flow for this time step
+
 
         for i, car_index in enumerate(car_indices):
             speed = self.speeds[i]
@@ -47,6 +53,7 @@ class NagelSchreckenberg:
             new_road[new_position] = 1
             new_speeds[i] = speed
             self.total_speed += speed # Add speed to total speed
+            self.flow += 1 if speed > 0 else 0  # Increment flow if the car moved
 
         self.road = new_road
         self.speeds = new_speeds

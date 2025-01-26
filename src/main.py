@@ -3,9 +3,9 @@ import random
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import scrolledtext
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-
 
 from models.nagel_schreckenberg import NagelSchreckenberg
 
@@ -17,9 +17,20 @@ def main():
 
     # Create frames for layout
     control_frame = tk.Frame(root)
-    control_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
+    control_frame.grid(row=0, column=0, sticky="ns", padx=10, pady=10)
     output_frame = tk.Frame(root)
-    output_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    output_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+    plot_frame = tk.Frame(root)
+    plot_frame.grid(row=0, column=2, sticky="nsew", padx=10, pady=10)
+
+    root.grid_columnconfigure(1, weight=1)
+    root.grid_columnconfigure(2, weight=1)
+    root.grid_rowconfigure(0, weight=1)
+    
+    #control_frame = tk.Frame(root)
+    #control_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
+    #output_frame = tk.Frame(root)
+    #output_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
     # Simulation parameters
     length = tk.IntVar(value=100)
@@ -54,26 +65,51 @@ def main():
     model = None
     speed_data = []
     density_data = []
+    flow_data = []
 
-    # Set up the matplotlib figure and axis
-    fig, ax = plt.subplots()
-    line, = ax.plot([], [], 'bo')
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, max_speed.get())
-    ax.set_xlabel("Density (cars per cell)")
-    ax.set_ylabel("Average Speed (cells per time step)")
-    ax.set_title("Density vs. Average Speed")
+    # Set up the matplotlib figure and axis for density vs speed plot
+    fig1, ax1 = plt.subplots()
+    line1, = ax1.plot([], [], 'bo')
+    ax1.set_xlim(0, 1)
+    ax1.set_ylim(0, max_speed.get())
+    ax1.set_xlabel("Density (cars per cell)")
+    ax1.set_ylabel("Average Speed (cells per time step)")
+    ax1.set_title("Density vs. Average Speed")
 
-    def init():
-        line.set_data([], [])
-        return line,
+    canvas1 = FigureCanvasTkAgg(fig1, master=plot_frame)
+    canvas1.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-    def update_plot(frame):
-        line.set_data(density_data, speed_data)
-        return line,
+    def init1():
+        line1.set_data([], [])
+        return line1,
 
-    ani = FuncAnimation(fig, update_plot, init_func=init, blit=True)
+    def update_plot1(frame):
+        line1.set_data(density_data, speed_data)
+        return line1,
 
+    ani1 = FuncAnimation(fig1, update_plot1, init_func=init1, blit=True, frames=time_steps.get())
+
+    # Set up the matplotlib figure and axis for density vs flow plot
+    fig2, ax2 = plt.subplots()
+    line2, = ax2.plot([], [], 'ro')
+    ax2.set_xlim(0, 1)
+    ax2.set_ylim(0, max_speed.get())
+    ax2.set_xlabel("Density (cars per cell)")
+    ax2.set_ylabel("Flow (cars per time step)")
+    ax2.set_title("Density vs. Flow")
+
+    canvas2 = FigureCanvasTkAgg(fig2, master=plot_frame)
+    canvas2.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+
+    def init2():
+        line2.set_data([], [])
+        return line2,
+
+    def update_plot2(frame):
+        line2.set_data(density_data, flow_data)
+        return line2,
+
+    ani2 = FuncAnimation(fig2, update_plot2, init_func=init2, blit=True, frames=time_steps.get())
 
     def start_simulation():
         if num_cars.get() > length.get():
@@ -94,6 +130,7 @@ def main():
         text_widget.delete(1.0, tk.END)
         #speed_data.clear()
         #density_data.clear()
+        #flow_data.clear()
         initialize_model()
 
     def update_simulation():
@@ -106,6 +143,8 @@ def main():
             speed_data.append(avg_speed)
             density = num_cars.get() / length.get()
             density_data.append(density)  # Collect density data
+            flow = model.flow / length.get()  # Calculate flow
+            flow_data.append(flow)  # Collect flow data
             step_counter[0] += 1
             root.after(100, update_simulation)  # Schedule the next update
         #else:
@@ -116,21 +155,19 @@ def main():
         print(f"Initializing model with length={length.get()}, num_cars={num_cars.get()}, max_speed={max_speed.get()}")
         model = NagelSchreckenberg(length.get(), num_cars.get(), max_speed.get())
 
+    def on_closing():
+        stop_simulation()
+        ani1.event_source.stop()
+        ani2.event_source.stop()
+        root.quit()
+        root.destroy()
+
     def disable_random():
         randomization.set(not randomization.get())
         print(f"Randomization set to {randomization.get()}")
     
     def plot_density_vs_speed():
         plt.show()
-
-        #density = num_cars.get() / length.get()
-        #avg_speed = np.mean(speed_data)
-        #plt.figure()
-        #plt.scatter(density, avg_speed)
-        #plt.xlabel("Density (cars per cell)")
-        #plt.ylabel("Average Speed (cells per time step)")
-        #plt.title("Density vs. Average Speed")
-        #plt.show()
 
     # Create buttons for starting, stopping, and resetting the simulation
     tk.Button(control_frame, text="Start", command=start_simulation).pack(pady=5)
@@ -144,10 +181,14 @@ def main():
     # Initialize the model
     initialize_model()
 
-    #show plot window
-    plt.show(block=False)
+    # Handle window close event
+    root.protocol("WM_DELETE_WINDOW", on_closing)
 
-    # Run the tkinter main loop
+    #show plot window
+    #plt.show(block=False)
+    #plt.show(block=False)
+
+    # Run the tkinter main loop 
     root.mainloop()
 
 if __name__ == "__main__":
