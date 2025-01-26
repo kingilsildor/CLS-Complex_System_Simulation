@@ -5,17 +5,18 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE_LEFT,
     INTERSECTION_DRIVE,
     VERTICAL_ROAD_VALUE_RIGHT,
+
 )
 
 
 class DensityTracker:
     """
-    Tracks various density metrics in the traffic simulation.
+    Tracks various traffic metrics in the simulation.
     """
 
     def __init__(self, grid):
         """
-        Initialize the density tracker.
+        Initialize the tracker.
 
         Parameters:
         -----------
@@ -23,55 +24,55 @@ class DensityTracker:
             The grid object containing the traffic simulation
         """
         self.grid = grid
-        self.initial_cars = None
+        self.car_wait_times = {}  # Maps car to its current waiting time
+        self.total_cars = len(grid.cars)
+        self.metrics_history = []  # Store metrics over time
 
-    def set_initial_cars(self):
-        """Set the initial number of cars for percentage calculation."""
-        car_positions = np.where(self.grid.grid == CAR_HEAD)
-        self.initial_cars = len(car_positions[0])
-
-    def calculate_road_density(self):
+    def update(self, moved_cars):
         """
-        Calculate the density of cars on road cells.
+        Update metrics for this time step.
+
+        Parameters:
+        -----------
+        moved_cars : set
+            Set of cars that moved this time step
+        """
+        # Update waiting times for all cars
+        for car in self.grid.cars:
+            if car not in self.car_wait_times:
+                self.car_wait_times[car] = 0
+
+            if car in moved_cars:
+                self.car_wait_times[car] = 0  # Reset wait time if car moved
+            else:
+                self.car_wait_times[car] += 1  # Increment wait time if car didn't move
+
+        # Calculate current metrics
+        metrics = self.get_metrics(moved_cars)
+        self.metrics_history.append(metrics)
+
+        return metrics
+
+    def get_metrics(self, moved_cars):
+        """
+        Calculate current traffic metrics.
+
+        Parameters:
+        -----------
+        moved_cars : set
+            Set of cars that moved this time step
 
         Returns:
         --------
-        float : Percentage of road cells occupied by cars (0-1)
-        """
-        # Get all road cells (excluding intersections)
-        road_mask = (self.grid.underlying_grid == VERTICAL_ROAD_VALUE_RIGHT) | (
-            self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE_LEFT
-        )
-        total_road_cells = np.sum(road_mask)
-
-        # Get car positions
-        car_positions = np.where(self.grid.grid == CAR_HEAD)
-        cars_on_roads = 0
-
-        # Check each car's position against the underlying grid
-        for x, y in zip(*car_positions):
-            if (
-                self.grid.underlying_grid[x, y] == VERTICAL_ROAD_VALUE_RIGHT
-                or self.grid.underlying_grid[x, y] == HORIZONTAL_ROAD_VALUE_LEFT
-            ):
-                cars_on_roads += 1
-
-        return cars_on_roads / total_road_cells if total_road_cells > 0 else 0
-
-    def calculate_intersection_density(self):
-        """
-        Calculate the density of cars at intersections.
-
-        Returns:
-        --------
-        float : Percentage of intersection cells occupied by cars (0-1)
+        dict : Dictionary containing traffic metrics
         """
         # Get all intersection cells
         intersection_mask = self.grid.underlying_grid == INTERSECTION_DRIVE
         total_intersection_cells = np.sum(intersection_mask)
 
-        # Get car positions
-        car_positions = np.where(self.grid.grid == CAR_HEAD)
+
+        # Count cars on roads and intersections
+        cars_on_roads = 0
         cars_at_intersections = 0
 
         # Check each car's position against the underlying grid
@@ -79,19 +80,41 @@ class DensityTracker:
             if self.grid.underlying_grid[x, y] == INTERSECTION_DRIVE:
                 cars_at_intersections += 1
 
-        return (
-            cars_at_intersections / total_intersection_cells
-            if total_intersection_cells > 0
-            else 0
+        # Calculate densities
+        road_density = cars_on_roads / (
+            self.grid.road_cells + self.grid.intersection_cells
+        )
+        intersection_density = cars_at_intersections / (
+            self.grid.road_cells + self.grid.intersection_cells
+        )
+        global_density = total_cars / (
+            self.grid.road_cells + self.grid.intersection_cells
         )
 
-    def calculate_overall_density(self):
+        # Calculate velocities and flow
+        average_velocity = moving_cars / total_cars if total_cars > 0 else 0
+        traffic_flow = global_density * average_velocity  # J = ρ⟨v⟩
+        queue_length = total_cars - moving_cars
+
+        return {
+            "timestamp": len(self.metrics_history),
+            "total_cars": total_cars,
+            "moving_cars": moving_cars,
+            "road_density": road_density,
+            "intersection_density": intersection_density,
+            "global_density": global_density,
+            "average_velocity": average_velocity,
+            "traffic_flow": traffic_flow,
+            "queue_length": queue_length,
+        }
+
+    def get_history(self):
         """
-        Calculate the overall density of cars in the system.
+        Get the complete history of metrics.
 
         Returns:
         --------
-        dict : Dictionary containing various density metrics
+        list : List of metric dictionaries over time
         """
         # Create mask for all valid positions (roads + intersections)
         system_mask = (
@@ -101,18 +124,8 @@ class DensityTracker:
         )
         total_system_cells = np.sum(system_mask)
 
-        # Count cars in system
+
+    def set_initial_cars(self):
+        """Set the initial number of cars for percentage calculation."""
         car_positions = np.where(self.grid.grid == CAR_HEAD)
-        total_cars = len(car_positions[0])
-
-        # Calculate system-wide density (as decimal, like other densities)
-        system_density = (
-            total_cars / total_system_cells if total_system_cells > 0 else 0
-        )
-
-        return {
-            "road_density": self.calculate_road_density(),
-            "intersection_density": self.calculate_intersection_density(),
-            "total_cars": total_cars,
-            "system_density": system_density,
-        }
+        self.initial_cars = len(car_positions[0])

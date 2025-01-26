@@ -18,6 +18,7 @@ from src.utils import (
 class Car:
     def __init__(self, grid: Grid, position: tuple, car_size: int = 1):
         assert isinstance(grid, Grid)
+
         self.grid = grid
 
         # Setup movement
@@ -168,6 +169,7 @@ class Car:
         Returns:
         --------
         None if the car cannot move to the next cell.
+
         """
         current_x, current_y = self.head_position
         possible_pos = None
@@ -233,6 +235,7 @@ class Car:
     def set_car_location(self, new_pos: tuple):
         """
         Set the car location to the new position.
+
 
         Parameters:
         -----------

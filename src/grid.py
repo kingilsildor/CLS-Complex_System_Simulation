@@ -7,6 +7,8 @@ from src.utils import (
     INTERSECTION_DRIVE,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
+    CAR_HEAD,
+    ROAD_CELLS,
 )
 
 temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
@@ -53,6 +55,16 @@ class Grid:
 
         # Store the road layout
         self.road_layout = self.grid.copy()
+
+        # Count road and intersection cells
+        road_mask = np.zeros_like(self.grid, dtype=bool)
+        for road_type in ROAD_CELLS:
+            road_mask = road_mask | (self.grid == road_type)
+        self.road_cells = np.sum(road_mask)
+
+        self.intersection_cells = np.sum(self.grid == INTERSECTION_VALUE)
+
+        self.allow_rotary_entry = False  # Start with rotaries blocked
 
     def roads(self):
         """
