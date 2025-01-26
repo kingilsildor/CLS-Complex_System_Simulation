@@ -13,6 +13,13 @@ from src.utils import (
     ROAD_CELLS,
 )
 
+CAR_DIRECTION = {
+    1: "⬇️",
+    2: "⬆️",
+    3: "⬅️",
+    4: "➡️",
+}
+
 
 class SimulationUI:
     def __init__(
@@ -90,23 +97,23 @@ class SimulationUI:
             )
 
             self.frame_rate_slider = self.create_slider(
-                "Frame Rate", default_val=40, min_val=1, max_val=500
+                "Frame Rate", default_val=400, min_val=1, max_val=500
             )
 
             self.grid_size_slider = self.create_slider(
-                "Grid Size", default_val=50, min_val=10, max_val=100
+                "Grid Size", default_val=15, min_val=10, max_val=100
             )
 
             self.blocks_size_slider = self.create_slider(
                 "Blocks Size", default_val=10, min_val=2, max_val=50
             )
 
-            self.lane_width_slider = self.create_slider(
-                "Lane Width", default_val=2, min_val=2, max_val=30
-            )
+            # self.lane_width_slider = self.create_slider(
+            #     "Lane Width", default_val=2, min_val=2, max_val=30
+            # )
 
             self.car_count_slider = self.create_slider(
-                "Car Count", default_val=100, min_val=1, max_val=1250
+                "Car Count", default_val=3, min_val=1, max_val=1250
             )
 
         if self.show_ui:
@@ -207,14 +214,18 @@ class SimulationUI:
 
         def _setup_plot():
             """
-            Set up the plot for the simulation.
+            Set up the plot for the simulation, including grid values and coordinates.
             """
             self.ax.clear()
             self.fig.subplots_adjust(top=0.85)
+
             cmap = "Greys" if self.colour_blind else "rainbow"
             self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
+
+            # Remove tick marks
             self.ax.set_xticks([])
             self.ax.set_yticks([])
+
             self.canvas.draw()
 
         def _start_animation(steps, frame_rate: int):
@@ -281,6 +292,28 @@ class SimulationUI:
         title += f"Cars: {density_metrics['total_cars']}"
         self.ax.set_title(title)
 
+        # Remove previous text annotations
+        if hasattr(self, "text_annotations"):
+            for txt in self.text_annotations:
+                txt.remove()
+
+        self.text_annotations = []
+
+        # Add text annotations for car directions
+        for car in self.grid.cars:
+            i, j = car.head_position
+            car_direction = CAR_DIRECTION[car.road_type]
+            text = self.ax.text(
+                j,
+                i,
+                car_direction,
+                ha="center",
+                va="center",
+                fontsize=10,
+                color="white",
+            )
+            self.text_annotations.append(text)
+
         self.canvas.draw()
 
     def pause_simulation(self):
@@ -332,8 +365,7 @@ class SimulationUI:
             ):
                 pass
 
-            road_type = self.grid.grid[x, y]
-            car = Car(self.grid, position=(x, y), road_type=road_type)
+            car = Car(self.grid, position=(x, y))
             assert isinstance(car, Car)
             cars[i] = car
 
@@ -387,8 +419,8 @@ class SimulationUI:
             #     end=" ",
             # )
             # print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
-            count_car_length = np.count_nonzero(self.grid.grid == 7)
-            print(np.sum(count_car_length))
+            # count_car_length = np.count_nonzero(self.grid.grid == 7)
+            # print(np.sum(count_car_length))
             grid_states.append(self.grid.grid.copy())
             self.grid.update_movement()
 
