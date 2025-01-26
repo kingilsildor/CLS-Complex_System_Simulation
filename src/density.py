@@ -2,8 +2,10 @@ import numpy as np
 
 from src.utils import (
     CAR_HEAD,
-    INTERSECTION_VALUE,
-    ROAD_CELLS,
+    HORIZONTAL_ROAD_VALUE_LEFT,
+    INTERSECTION_DRIVE,
+    VERTICAL_ROAD_VALUE_RIGHT,
+
 )
 
 
@@ -64,21 +66,18 @@ class DensityTracker:
         --------
         dict : Dictionary containing traffic metrics
         """
-        total_cars = len(self.grid.cars)
-        moving_cars = len(moved_cars)
+        # Get all intersection cells
+        intersection_mask = self.grid.underlying_grid == INTERSECTION_DRIVE
+        total_intersection_cells = np.sum(intersection_mask)
+
 
         # Count cars on roads and intersections
         cars_on_roads = 0
         cars_at_intersections = 0
 
-        for car in self.grid.cars:
-            x, y = car.head_position
-            cell_type = self.grid.road_layout[
-                x, y
-            ]  # Use road_layout to check original cell type
-            if cell_type in ROAD_CELLS:
-                cars_on_roads += 1
-            elif cell_type == INTERSECTION_VALUE:
+        # Check each car's position against the underlying grid
+        for x, y in zip(*car_positions):
+            if self.grid.underlying_grid[x, y] == INTERSECTION_DRIVE:
                 cars_at_intersections += 1
 
         # Calculate densities
@@ -117,7 +116,14 @@ class DensityTracker:
         --------
         list : List of metric dictionaries over time
         """
-        return self.metrics_history
+        # Create mask for all valid positions (roads + intersections)
+        system_mask = (
+            (self.grid.underlying_grid == VERTICAL_ROAD_VALUE_RIGHT)
+            | (self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE_LEFT)
+            | (self.grid.underlying_grid == INTERSECTION_DRIVE)
+        )
+        total_system_cells = np.sum(system_mask)
+
 
     def set_initial_cars(self):
         """Set the initial number of cars for percentage calculation."""
