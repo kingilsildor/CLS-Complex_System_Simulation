@@ -8,10 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.car import Car
 from src.density import DensityTracker
 from src.grid import Grid
-from src.utils import (
-    FILE_EXTENSION,
-    ROAD_CELLS,
-)
+from src.utils import FILE_EXTENSION, MAX_SPEED, MIN_SPEED, ROAD_CELLS
 
 CAR_DIRECTION = {
     1: "⬇️",
@@ -180,12 +177,16 @@ class SimulationUI:
                 "Blocks Size", default_val=20, min_val=2, max_val=50
             )
 
-            self.lane_width_slider = self.create_slider(
-                "Lane Width", default_val=2, min_val=2, max_val=30
-            )
-
             self.car_count_slider = self.create_slider(
                 "Car Count", default_val=100, min_val=1, max_val=1250
+            )
+
+            self.max_speed_slider = self.create_slider(
+                "Max Speed", default_val=2, min_val=MIN_SPEED, max_val=MAX_SPEED
+            )
+
+            self.percentage_on_max_speed = self.create_slider(
+                "Percentage on Max Speed", default_val=100, min_val=0, max_val=100
             )
 
         if self.show_ui:
@@ -276,6 +277,14 @@ class SimulationUI:
                 self.ax_queue.clear()
                 self.canvas.draw()
 
+        def _initialize_grid(grid_size: int, blocks_size: int, max_speed: int) -> Grid:
+            """
+            Initialize the grid with the given parameters.
+            """
+            return Grid(
+                grid_size=grid_size, blocks_size=blocks_size, max_speed=max_speed
+            )
+
         def _setup_plot():
             """Set up the plot for the simulation."""
             # Clear previous plots
@@ -350,7 +359,7 @@ class SimulationUI:
 
         _restart_simulation_if_needed()
         self.write_header()
-
+        
         # Reset data arrays
         self.velocity_data = []
 
@@ -367,10 +376,11 @@ class SimulationUI:
         )
         self.density_tracker = DensityTracker(self.grid)
 
+        # Create cars
         car_count = self.car_count_slider.get()
-        cars = self.create_cars(car_count)
+        car_speed_percentage = self.percentage_on_max_speed.get()
+        cars = self.create_cars(car_count, car_speed_percentage)
         self.grid.add_cars(cars)
-        # cars[1].
         _setup_plot()
 
         self.start_button.config(state=tk.DISABLED)
@@ -525,7 +535,7 @@ class SimulationUI:
             self.pause_button.config(text="Pause Simulation")
             print("Simulation resumed.")
 
-    def create_cars(self, car_count: int) -> list[Car]:
+    def create_cars(self, car_count: int, car_speed_percentage: int) -> list[Car]:
         """
         Create a list of cars with positions and directions based on traffic rules.
         Cars will drive on the right side by default. Cars will only spawn on regular road cells,
@@ -545,6 +555,12 @@ class SimulationUI:
         np.random.seed(42)
 
         cars = np.zeros(car_count, dtype=object)
+
+        follow_limit_count = int((car_speed_percentage / 100) * car_count)
+        follow_limit_indices = set(
+            np.random.choice(car_count, follow_limit_count, replace=False)
+        )
+
         for i in range(car_count):
             while (
                 self.grid.grid[
@@ -555,7 +571,9 @@ class SimulationUI:
             ):
                 pass
 
-            car = Car(self.grid, position=(x, y))
+            # Set "follow the speed limit" for cars
+            follow_limit = True if i in follow_limit_indices else False
+            car = Car(self.grid, position=(x, y), follow_limit=follow_limit)
             assert isinstance(car, Car)
             cars[i] = car
 

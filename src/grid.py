@@ -21,7 +21,7 @@ class Grid:
     Cars can be added to the grid and their movements updated dynamically.
     """
 
-    def __init__(self, grid_size: int, blocks_size: int, lane_width: int = 2):
+    def __init__(self, grid_size: int, blocks_size: int, max_speed: int = 2):
         """
         Initialize the grid with a given size, block size, and lane width.
 
@@ -29,7 +29,7 @@ class Grid:
         -------
         - grid_size (int): The size of the grid (NxN).
         - blocks_size (int): The size of blocks between roads.
-        - lane_width (int, optional): The width of each lane. Defaults to 2.
+        - max_speed (int): The maximum speed of cars on the grid.
         """
         self.grid = np.full((grid_size, grid_size), BLOCKS_VALUE, dtype=int)
         self.underlying_grid = np.full(
@@ -37,23 +37,16 @@ class Grid:
         )  # Track original cell types
         self.size = grid_size
         self.blocks = blocks_size
-
-        # Ensure the number of lanes is an even number
-        try:
-            if lane_width % 2 != 0:
-                raise ValueError("Number of lanes must be an even number.")
-            self.lane_width = lane_width
-        except ValueError:
-            self.lane_width = lane_width + 1
-            print(f"Setting lane width to {self.lane_width}.")
+        self.lane_width = 2
 
         self.cars = []
         self.rotary_dict = []
         self.flag = np.full((grid_size, grid_size), INTERSECTION_DRIVE, dtype=int)
-        self.roads()
 
         # Store the road layout
+        self.roads()
         self.road_layout = self.grid.copy()
+        self.max_speed = max_speed
 
         # Count road and intersection cells
         road_mask = np.zeros_like(self.grid, dtype=bool)

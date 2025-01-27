@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     if experiment:
         run_experiment()
-
+        
     elif not show_ui:
         ui = SimulationUI(None, show_ui=False)
         grid_states = ui.run_simulation_without_ui(
@@ -26,3 +26,7 @@ if __name__ == "__main__":
         root = tk.Tk()
         ui = SimulationUI(root, show_ui=True, colour_blind=False)
         root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
