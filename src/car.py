@@ -19,6 +19,7 @@ from src.utils import (
 class Car:
     def __init__(self, grid: Grid, position: tuple, follow_limit: bool = False):
         assert isinstance(grid, Grid)
+
         self.grid = grid
 
         # Setup movement
@@ -277,6 +278,7 @@ class Car:
     def set_car_location(self, new_pos: tuple):
         """
         Set the car location to the new position.
+
 
         Parameters:
         -----------
