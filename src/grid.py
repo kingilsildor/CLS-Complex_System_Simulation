@@ -7,6 +7,7 @@ from src.utils import (
     INTERSECTION_DRIVE,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
+    ROAD_CELLS,
 )
 
 temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
@@ -47,6 +48,16 @@ class Grid:
         self.road_layout = self.grid.copy()
         self.max_speed = max_speed
 
+        # Count road and intersection cells
+        road_mask = np.zeros_like(self.grid, dtype=bool)
+        for road_type in ROAD_CELLS:
+            road_mask = road_mask | (self.underlying_grid == road_type)
+        self.road_cells = np.sum(road_mask)
+
+        self.intersection_cells = np.sum(self.underlying_grid == INTERSECTION_DRIVE)
+
+        self.allow_rotary_entry = False  # Start with rotaries blocked
+
     def roads(self):
         """
         Construct roads on the grid, including vertical, horizontal, and intersection roads.
@@ -81,8 +92,10 @@ class Grid:
                     if self.grid[x, y] == BLOCKS_VALUE:
                         if (y - left) < lane_devider:
                             self.grid[x, y] = VERTICAL_ROAD_VALUE_LEFT
+                            self.underlying_grid[x, y] = VERTICAL_ROAD_VALUE_LEFT
                         else:
                             self.grid[x, y] = VERTICAL_ROAD_VALUE_RIGHT
+                            self.underlying_grid[x, y] = VERTICAL_ROAD_VALUE_RIGHT
 
     def create_horizontal_lanes(self):
         """
@@ -101,8 +114,10 @@ class Grid:
                     if self.grid[x, y] == BLOCKS_VALUE:
                         if (x - top) < lane_devider:
                             self.grid[x, y] = HORIZONTAL_ROAD_VALUE_LEFT
+                            self.underlying_grid[x, y] = HORIZONTAL_ROAD_VALUE_LEFT
                         else:
                             self.grid[x, y] = HORIZONTAL_ROAD_VALUE_RIGHT
+                            self.underlying_grid[x, y] = HORIZONTAL_ROAD_VALUE_RIGHT
 
     def create_intersections(self):
         """
@@ -118,6 +133,7 @@ class Grid:
                 y0, y1 = j, j + self.lane_width
 
                 self.grid[x0:x1, y0:y1] = INTERSECTION_DRIVE
+                self.underlying_grid[x0:x1, y0:y1] = INTERSECTION_DRIVE
 
                 ring = [(x0, y0), (x0, y0 + 1), (x0 + 1, y0 + 1), (x0 + 1, y0)]
                 assert isinstance(ring, list)
@@ -136,7 +152,13 @@ class Grid:
     def update_movement(self):
         """
         Update the grid to reflect the movement of all cars.
+
+        Returns:
+        --------
+        set: A set of distances moved by cars
         """
+        moved_distances = []
         for car in self.cars:
-            car.move()
-        # print("--------------------")
+            distance = car.move()
+            moved_distances.append(distance)
+        return moved_distances

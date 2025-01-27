@@ -19,6 +19,7 @@ from src.utils import (
 class Car:
     def __init__(self, grid: Grid, position: tuple, follow_limit: bool = False):
         assert isinstance(grid, Grid)
+
         self.grid = grid
 
         # Setup movement
@@ -131,16 +132,13 @@ class Car:
     def move(self):
         """
         Move the car to the next cell controller function.
+        Returns max_speed if moved straight, 1 if moved on rotary, 0 if didn't move.
         """
 
         def _move_straight():
             """
             Move the car straight forward.
-            It will use the max speed of the road if enabled and able to.
-
-            Returns:
-            --------
-            None if the car cannot move to the next cell or the car moved on the rotary.
+            Returns True if moved, False otherwise.
             """
             current_x, current_y = self.head_position
             new_x, new_y = current_x, current_y
@@ -174,19 +172,18 @@ class Car:
                 if possible_cell in INTERSECTION_CELLS:
                     self.set_car_rotary(True)
                     self.set_car_location((current_x, current_y))
-                    return
+                    return True
 
             assert isinstance(last_open_space, tuple) and len(last_open_space) == 2
             if last_open_space != self.head_position:
                 self.set_car_location(last_open_space)
+                return True
+            return False
 
         def _move_rotary():
             """
             Move the car on the rotary.
-
-            Returns:
-            --------
-            None if the car cannot move to the next cell.
+            Returns True if moved, False otherwise.
             """
             current_x, current_y = self.head_position
             possible_pos = None
@@ -210,18 +207,17 @@ class Car:
             possible_cell = self.get_infront(possible_pos)
 
             if possible_cell == CAR_HEAD:
-                return
+                return False
             if possible_cell in ROAD_CELLS or possible_cell in INTERSECTION_CELLS:
                 self.set_car_location(possible_pos)
                 self.set_car_road_type(possible_road_type)
+                return True
+            return False
 
         def _exit_rotary():
             """
             Move the car out of the rotary.
-
-            Returns:
-            --------
-            None if the car cannot move to the next cell.
+            Returns True if moved, False otherwise.
             """
             current_x, current_y = self.head_position
             possible_pos, road_type = None, None
@@ -247,28 +243,39 @@ class Car:
                 possible_cell not in ROAD_CELLS
                 and possible_cell not in INTERSECTION_CELLS
             ):
-                return
+                return False
             if possible_cell == CAR_HEAD:
-                return
+                return False
+
             if possible_cell not in INTERSECTION_CELLS:
                 self.set_car_rotary(False)
 
             self.set_car_location(possible_pos)
             self.set_car_road_type(road_type)
+            return True
 
-        # Move the car according to the road type
+        # Move the car according to the road type and get success status
+        success = False
         if self.on_rotary and self.flag == EXIT_ROTARY:
-            _exit_rotary()
+            success = _exit_rotary()
         elif self.on_rotary:
-            _move_rotary()
+            success = _move_rotary()
         elif not self.on_rotary:
-            _move_straight()
+            success = _move_straight()
         else:
             raise ValueError("Invalid car state.")
 
         # Randomly set the rotary flag
         flag = self.flag_func()
         self.set_car_rotary_flag(flag)
+
+        # Return max_speed if moved straight, 1 if moved on rotary/exit, 0 if didn't move
+        if not success:
+            return 0
+        elif self.on_rotary:
+            return 1
+        else:
+            return self.max_speed
 
     #######################################################
     # Setters for the car object with error checking,     #
@@ -277,6 +284,7 @@ class Car:
     def set_car_location(self, new_pos: tuple):
         """
         Set the car location to the new position.
+
 
         Parameters:
         -----------
