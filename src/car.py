@@ -22,6 +22,7 @@ class Car:
         self.grid = grid
 
         # Setup movement
+        assert isinstance(position, tuple)
         assert len(position) == 2 and all(isinstance(p, int) for p in position)
         road_type = self.grid.grid[position]
         if road_type not in ROAD_CELLS and road_type not in INTERSECTION_CELLS:
@@ -33,10 +34,16 @@ class Car:
         self.head_position = position
         self.flag = STAY_ON_ROTARY
 
+        # Setup speed
+        assert isinstance(follow_limit, bool)
         if follow_limit:
+            assert hasattr(self.grid, "max_speed")
+            assert isinstance(self.grid.max_speed, int)
             self.max_speed = self.grid.max_speed
         else:
-            self.max_speed = np.random.randint(MIN_SPEED, MAX_SPEED + 1)
+            random_speed = np.random.randint(MIN_SPEED, MAX_SPEED + 1)
+            assert MIN_SPEED <= random_speed <= MAX_SPEED
+            self.max_speed = random_speed
 
     def get_boundary_pos(self, x: int, y: int) -> tuple:
         """
@@ -68,7 +75,7 @@ class Car:
 
         Returns:
         --------
-
+        - flag (int): The new flag of the car.
         """
         if np.random.uniform() < 0.2:
             return EXIT_ROTARY
