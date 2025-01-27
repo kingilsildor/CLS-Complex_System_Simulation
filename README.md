@@ -1,8 +1,35 @@
-## CLS-Complex_System_Simulation
-This course covers Complex System Simulation, exploring concepts like emergence, chaos, phase transitions, and complexity. Topics include Cellular Automata, Percolation, Self-Organized Criticality, Random Networks, and more. Students will develop simulations and analyze emergent phenomena in group projects..
+# Car Density Analysis Using Cellular Automata 🚗🏙️
+Within this repository we explore how a cellular automata can be used to model and analyze car density in urban environments.
+By simulating traffic on Manhattan-style grids, we compare 1D and 2D road networks and investigate how various parameters influence traffic flow and congestion.  
 
-## Getting started
+## Description
+Based on the research done by Chopard, Luthi & Queloz (1996), we looked at modelling traffic for urban environments. Here, we use **cellular automata** as a lightweight and flexible approach to simulate traffic behavior. Our simulations model cars moving through streets and intersections, taking into account factors like:  
 
+- **Grid structure**: Linear 1D roads vs. interconnected 2D Manhattan grids.  
+- **Road parameters**: 
+    - Road size 
+    - Speed limits
+    - Rotaries.  
+- **Car parameters**: 
+    - Number of cars in the system.
+    - Whether the cars adhere to the speed limit
+
+This study allows us to observe emergent behaviors such as traffic jams, flow bottlenecks, and the effects of road infrastructure on congestion.
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Usage](#usage)
+- [File Descriptions](#file-descriptions)
+- [Contributors](#contributors)
+- [References](#references)
+- [Licence](#licence)
+
+## Getting Started
+
+First one should clone the repository. Followed by installing the required dependencies.
+
+### UV
 This repository uses _uv_ to manage Python and its dependencies, and _pre-commit_ to run
 automatic code linting & formatting.
 
@@ -25,37 +52,73 @@ pre-commit install
 
 # It's a good idea to run pre-commit now on all files.
 pre-commit run --all-files
+
+# Before running the code sync all the packages locally
+uv sync
 ```
 
 4. Run code:
 
 ```zsh
-uv run <PATH-TO-PYTHON-FILE>
+uv run main.py
 ```
-
-## Adding new packages with uv
-
-It's simple to add a Python package to the project with uv using `uv add`.
-For instance, to install numpy and scipy, and add them to the dependency graph, run:
+### Conda 
+If _uv_ doesn't work one can install the required dependencies from `requirements.txt`. It's best to run it in python 3.12.2.
 
 ```zsh
-uv add numpy scipy
+conda install --file requirements.txt
 ```
 
-To remove a package dependency, e.g., scipy, run:
+## Usage
+`main.py` is the main entry point for the simulation project. It can be run either with a graphical user interface (GUI) or in a headless (non-UI) mode.
 
-```zsh
-uv remove scipy
-```
 
-## Running JupyterLab with uv
+1. The `show_ui` flag determines whether the simulation runs with or without a GUI:
+    - **`True` (default)**: Opens a GUI using Tkinter to visualize the simulation.
+    - **`False`**: Runs the simulation without a GUI and prints the grid states to the console for a specified number of steps.
 
-uv can also be used to run Jupyter, the same way as we run Python scripts:
+2. **Non-UI Mode**:  
+   If you set `show_ui` to `False`, the following parameters are passed to the simulation:
+   - `steps=100`: Number of simulation steps.
+   - `grid_size=15`: The size of the grid.
+   - `blocks_size=10`: The size of each grid block.
+   - `lane_width=2`: Width of lanes on the grid.
+   - `car_count=4`: Number of cars in the simulation.  
+   The resulting states of the grid will be printed to the console after each step and writen to `data/simulation.txt`.
 
-```zsh
-# If Jupyter Lab isn't already installed, add it as a dependency
-uv add jupyterlab
+3. **UI Mode**:  
+   When `show_ui` is `True`, a Tkinter window will open, allowing you to interactively view the simulation.
 
-# Start a JupyterLab server
-uv run jupyter lab
-```
+4. **Testing**:
+    **TODO**
+
+
+## File description
+- **`data/simulation.txt`**: A text file containing data results related to the simulation.
+- **`src/car.py`**: Contains logic and class definitions related to the car entities in the simulation.
+- **`src/density.py`**: Handles calculations or logic for density in the system.
+- **`src/grid.py`**: Manages grid-based operations and grid-related logic in the simulation.
+- **`src/simulation.py`**: Core simulation code, to control the different components.
+- **`src/utils.py`**: Utility functions used across the project for shared functionality.
+- **`main.py`**: The entry point of the project, to initiate the simulation.
+- **`requirements.txt`**: Lists Python dependencies required for the project.
+
+
+## Contributors
+
+We planed on collaborating in most parts of the assignment. We made a Trello board to structure the tasks at hand, divide them into small tickets, and distribute the workload evenly. For the presentation and documentation, we have collaborated on all parts through longer meetings.
+
+
+- **Max**:
+- **Koen**:
+- **Bart**:
+- **Tycho**: Worked on the boilerplates of the code base, such as the `Car`, `Grid` and `Simulation` classes. Handeled the repository and helped with bug fixing.
+
+All the commits can be found in main.
+
+
+## References
+Chopard, B., Luthi, P. O., & Queloz, P. A. (1996). Cellular automata model of car traffic in a two-dimensional street network. Journal of Physics A: Mathematical and General, 29(10), 2325.
+
+## Licence
+This repository is licensed under the MIT License. You are generally free to reuse or extend upon this code as you see fit; just include the original copy of the license
