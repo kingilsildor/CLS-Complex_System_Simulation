@@ -26,6 +26,9 @@ class Simulation:
     def init_slider(self):
         pass
 
+    def init_metric(self):
+        pass
+
     def save_plot(self):
         pass
 
