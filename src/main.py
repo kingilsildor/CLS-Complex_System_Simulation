@@ -47,6 +47,12 @@ def main():
 
     plot_frame.bind("<Configure>", on_frame_configure)
 
+    # Bind mouse wheel events to the plot_canvas for scrolling
+    def on_mouse_wheel(event):
+        plot_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+    plot_canvas.bind_all("<MouseWheel>", on_mouse_wheel)
+
     # Simulation parameters
     length = tk.IntVar(value=100)
     num_cars = tk.IntVar(value=10)
@@ -60,7 +66,7 @@ def main():
     tk.Label(control_frame, text="Number of cars").pack()
     tk.Scale(control_frame, from_=1, to=200, orient=tk.HORIZONTAL, variable=num_cars).pack()
     tk.Label(control_frame, text="Maximum speed of cars").pack()
-    tk.Scale(control_frame, from_=1, to=20, orient=tk.HORIZONTAL, variable=max_speed).pack()
+    tk.Scale(control_frame, from_=1, to=5, orient=tk.HORIZONTAL, variable=max_speed).pack()
     tk.Label(control_frame, text="Number of time steps").pack()
     tk.Scale(control_frame, from_=10, to=500, orient=tk.HORIZONTAL, variable=time_steps).pack()
 
@@ -130,39 +136,54 @@ def main():
     # Set up the matplotlib figure and axis for time-space diagram
     fig3, ax3 = plt.subplots()
     ax3.set_xlim(0, length.get())
-    ax3.set_ylim(0, time_steps.get())
+    ax3.set_ylim(time_steps.get(), 0)
     ax3.set_xlabel("Position")
     ax3.set_ylabel("Time")
     ax3.set_title("Time-Space Diagram")
-
+    line3, = ax3.plot([], [], 'ko', markersize=1)  # Initialize line3 for scatter plot
+    
     canvas3 = FigureCanvasTkAgg(fig3, master=plot_frame)
-    canvas3.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+    canvas3.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    def init3():
+        line3.set_data([], [])
+        return line3,
+
+    #def init3():
+        #ax3.set_xlim(0, length.get())
+        #ax3.set_ylim(time_steps.get(), 0)  # Flip the y-axis
+        #ax3.set_xlabel("Position")
+        #ax3.set_ylabel("Time")
+        #ax3.set_title("Time-Space Diagram")
+        #return ax3,
 
     def update_plot3(frame):
-        ax3.clear()
-        ax3.set_xlim(0, length.get())
-        ax3.set_ylim(0, time_steps.get())
-        ax3.set_xlabel("Position")
-        ax3.set_ylabel("Time")
-        ax3.set_title("Time-Space Diagram")
+        x_data = []
+        y_data = []
         for t, positions in enumerate(time_space_data):
-            ax3.scatter(positions, [t] * len(positions), c='black', s=1)
-        return ax3,
+            x_data.extend(positions)
+            y_data.extend([t] * len(positions))
+        line3.set_data(x_data, y_data)
+        return line3,
 
-    ani3 = FuncAnimation(fig3, update_plot3, blit=True, frames=time_steps.get())
+            #ax3.scatter(positions, [t] * len(positions), c='black', s=1)
+        #return ax3,
 
+    ani3 = FuncAnimation(fig3, update_plot3, init_func=init3, blit=True, frames=time_steps.get())
+    
     def save_plots():
+        # Manually update the time-space diagram plot before saving
         update_plot3(None)
-        fig3.canvas.draw_idle()
-        plt.pause(0.1)
-        
+        fig3.canvas.draw()
+        plt.pause(0.1)  # Allow time for the canvas to update
+    
         file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
         if file_path:
             fig1.savefig(f"{file_path}_density_vs_speed.png")
             fig2.savefig(f"{file_path}_density_vs_flow.png")
             fig3.savefig(f"{file_path}_time_space_diagram.png")
             messagebox.showinfo("Save Plots", "Plots saved successfully!")
-
+    
     def start_simulation():
         if num_cars.get() > length.get():
             messagebox.showerror("Parameter Error", "Number of cars cannot be greater than the length of the road")
@@ -183,6 +204,7 @@ def main():
         #speed_data.clear()
         #density_data.clear()
         #flow_data.clear()
+        time_space_data.clear()
         initialize_model()
 
     def update_simulation():

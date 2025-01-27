@@ -18,6 +18,12 @@ class NagelSchreckenberg:
         
         if self.num_cars < 1:
             raise ValueError("Number of cars must be at least 1")
+        
+        if self.max_speed < 1:
+            raise ValueError("Max speed must be at least 1")
+        
+        if self.max_speed > 5:
+            raise ValueError("Max speed cannot be greater than 5")
 
         self.initialize()
 
