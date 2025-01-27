@@ -115,24 +115,33 @@ class Car:
     def move(self):
         """
         Move the car to the next cell controller function.
-        """
-        # TODO write the other move functions as a subfunction of this
 
+        Returns:
+        --------
+        bool: True if the car moved, False otherwise.
+        """
+        moved = False
         if self.on_rotary and self.flag == EXIT_ROTARY:
-            self.exit_rotary()
+            moved = self.exit_rotary()
         elif self.on_rotary:
-            self.move_rotary()
+            moved = self.move_rotary()
         elif not self.on_rotary:
-            self.move_straight()
+            moved = self.move_straight()
 
         if np.random.uniform() < 0.2:
             self.set_car_rotary_flag(EXIT_ROTARY)
         else:
             self.set_car_rotary_flag(STAY_ON_ROTARY)
 
+        return moved
+
     def move_straight(self):
         """
         Move the car straight.
+
+        Returns:
+        --------
+        bool: True if the car moved, False otherwise.
         """
         current_x, current_y = self.head_position
         possible_pos = None
@@ -152,15 +161,18 @@ class Car:
         diagonal_cell = self.return_diagonal(possible_pos)
 
         if possible_cell in [CAR_HEAD, CAR_BODY]:
-            return
+            return False
         if possible_cell in ROAD_CELLS:
             self.set_car_location(possible_pos)
+            return True
         if possible_cell in INTERSECTION_CELLS and diagonal_cell not in [
             CAR_HEAD,
             CAR_BODY,
         ]:
             self.set_car_rotary(True)
             self.set_car_location(possible_pos)
+            return True
+        return False
 
     def move_rotary(self):
         """
@@ -168,8 +180,7 @@ class Car:
 
         Returns:
         --------
-        None if the car cannot move to the next cell.
-
+        bool: True if the car moved, False otherwise.
         """
         current_x, current_y = self.head_position
         possible_pos = None
@@ -193,14 +204,20 @@ class Car:
         possible_cell = self.return_infront(possible_pos)
 
         if possible_cell in [CAR_HEAD, CAR_BODY]:
-            return
+            return False
         if possible_cell in ROAD_CELLS or possible_cell in INTERSECTION_CELLS:
             self.set_car_location(possible_pos)
             self.set_car_road_type(possible_road_type)
+            return True
+        return False
 
     def exit_rotary(self):
         """
         Move the car out of the rotary.
+
+        Returns:
+        --------
+        bool: True if the car moved, False otherwise.
         """
         current_x, current_y = self.head_position
         possible_pos, road_type = None, None
@@ -223,14 +240,15 @@ class Car:
         possible_cell = self.return_infront(possible_pos)
 
         if possible_cell not in ROAD_CELLS and possible_cell not in INTERSECTION_CELLS:
-            return
+            return False
         if possible_cell in [CAR_HEAD, CAR_BODY]:
-            return
+            return False
         if possible_cell not in INTERSECTION_CELLS:
             self.set_car_rotary(False)
 
         self.set_car_location(possible_pos)
         self.set_car_road_type(road_type)
+        return True
 
     def set_car_location(self, new_pos: tuple):
         """

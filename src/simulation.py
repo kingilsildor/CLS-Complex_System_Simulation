@@ -169,23 +169,23 @@ class SimulationUI:
             )
 
             self.frame_rate_slider = self.create_slider(
-                "Frame Rate", default_val=400, min_val=1, max_val=500
+                "Frame Rate", default_val=50, min_val=1, max_val=500
             )
 
             self.grid_size_slider = self.create_slider(
-                "Grid Size", default_val=15, min_val=10, max_val=100
+                "Grid Size", default_val=50, min_val=10, max_val=100
             )
 
             self.blocks_size_slider = self.create_slider(
-                "Blocks Size", default_val=10, min_val=2, max_val=50
+                "Blocks Size", default_val=20, min_val=2, max_val=50
             )
 
-            # self.lane_width_slider = self.create_slider(
-            #     "Lane Width", default_val=2, min_val=2, max_val=30
-            # )
+            self.lane_width_slider = self.create_slider(
+                "Lane Width", default_val=2, min_val=2, max_val=30
+            )
 
             self.car_count_slider = self.create_slider(
-                "Car Count", default_val=3, min_val=1, max_val=1250
+                "Car Count", default_val=100, min_val=1, max_val=1250
             )
 
         if self.show_ui:
@@ -203,9 +203,6 @@ class SimulationUI:
             _init_buttons()
             _init_metrics_display()
             _init_plot()
-
-        else:
-            print("Running simulation without UI.")
 
     def create_slider(
         self,
@@ -280,29 +277,21 @@ class SimulationUI:
                 self.canvas.draw()
 
         def _setup_plot():
-
-            """
-            Set up the plot for the simulation, including grid values and coordinates.
-            """
-            #Clear main plot
-            self.ax.clear()
-            self.fig.subplots_adjust(top=0.85)
-            
-            #Clear other plots
+            """Set up the plot for the simulation."""
+            # Clear previous plots
             self.ax_grid.clear()
             self.ax_density.clear()
             self.ax_velocity.clear()
             self.ax_flow.clear()
             self.ax_queue.clear()
 
+            # Setup grid plot
+            self.ax_grid.set_xticks([])
+            self.ax_grid.set_yticks([])
             cmap = "Greys" if self.colour_blind else "rainbow"
-            self.im = self.ax.imshow(self.grid.grid, cmap=cmap, interpolation="nearest")
-
-            # Remove tick marks
-            self.ax.set_xticks([])
-            self.ax.set_yticks([])
-
-            self.canvas.draw()
+            self.im = self.ax_grid.imshow(
+                self.grid.grid, cmap=cmap, interpolation="nearest"
+            )
 
             # Initialize data arrays
             self.step_data = []
@@ -412,10 +401,6 @@ class SimulationUI:
                 self.queue_line,
             ]
 
-        # Randomly switch rotary access (10% chance each frame)
-        if np.random.random() < 0.1:
-            self.grid.allow_rotary_entry = not self.grid.allow_rotary_entry
-
         # Update grid and get metrics
         moved_cars = self.grid.update_movement()
         metrics = self.density_tracker.update(moved_cars)
@@ -460,10 +445,6 @@ class SimulationUI:
         # Update grid title
         title = f"Simulation step {frame + 1}\n"
         title += f"Cars: {metrics['total_cars']}"
-        if self.grid.allow_rotary_entry:
-            title += " | Rotary: ✓"
-        else:
-            title += " | Rotary: ✗"
         self.ax_grid.set_title(title)
 
         # Update all plots
@@ -487,21 +468,18 @@ class SimulationUI:
         self.im.set_array(self.grid.grid)
 
         title = f"Simulation step {frame + 1}\n"
-        title += f"Cars: {density_metrics['total_cars']}"
-        self.ax.set_title(title)
+        title += f"Cars: {metrics['total_cars']}"
+        self.ax_grid.set_title(title)
 
-        # Remove previous text annotations
-        if hasattr(self, "text_annotations"):
-            for txt in self.text_annotations:
-                txt.remove()
-
-        self.text_annotations = []
+        # Remove all existing text annotations
+        for text in self.ax_grid.texts[:]:
+            text.remove()
 
         # Add text annotations for car directions
         for car in self.grid.cars:
             i, j = car.head_position
             car_direction = CAR_DIRECTION[car.road_type]
-            text = self.ax.text(
+            self.ax_grid.text(
                 j,
                 i,
                 car_direction,
@@ -510,8 +488,6 @@ class SimulationUI:
                 fontsize=10,
                 color="white",
             )
-            self.text_annotations.append(text)
-
 
         self.canvas.draw()
 
@@ -584,7 +560,6 @@ class SimulationUI:
             cars[i] = car
 
         assert isinstance(cars, np.ndarray)
-        print(f"Created {car_count} cars.")
         return cars
 
     def run_simulation_without_ui(
@@ -620,6 +595,9 @@ class SimulationUI:
 
         # Run simulation steps
         grid_states = []
+        total_velocity = 0
+        total_road_density = 0
+        total_intersection_density = 0
 
         if output:
             print("\033[1;36m=== Traffic Simulation ===")
@@ -628,38 +606,29 @@ class SimulationUI:
             )
 
         for step in range(steps):
+            moved_cars = self.grid.update_movement()
+            metrics = self.density_tracker.update(moved_cars)
+            total_velocity += metrics["average_velocity"]
+            total_road_density += metrics["road_density"]
+            total_intersection_density += metrics["intersection_density"]
+
             if output:
-                density = self.density_tracker.calculate_overall_density()
                 print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
                 print(
-                    f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m",
+                    f"\033[1;32mSystem: {metrics['global_density'] * 100:4.1f}%\033[0m",
                     end=" ",
                 )
                 print(
-                    f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m",
+                    f"\033[1;34mRoads: {metrics['road_density'] * 100:4.1f}%\033[0m",
                     end=" ",
                 )
                 print(
-                    f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
+                    f"\033[1;35mInter: {metrics['intersection_density'] * 100:4.1f}%\033[0m",
                     end=" ",
                 )
-                print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
+                print(f"\033[1;36mCars: {metrics['total_cars']:3d}\033[0m")
 
             grid_states.append(self.grid.grid.copy())
-            self.grid.update_movement()
-
-        # Final state
-        # density = self.density_tracker.calculate_overall_density()
-        # print(f"\033[1;33mStep {steps:4d}/{steps:d}\033[0m", end=" ")
-        # print(
-        #     f"\033[1;32mSystem: {density['system_density'] * 100:4.1f}%\033[0m", end=" "
-        # )
-        # print(f"\033[1;34mRoads: {density['road_density'] * 100:4.1f}%\033[0m", end=" ")
-        # print(
-        #     f"\033[1;35mInter: {density['intersection_density'] * 100:4.1f}%\033[0m",
-        #     end=" ",
-        # )
-        # print(f"\033[1;36mCars: {density['total_cars']:3d}\033[0m")
 
         return grid_states
 
@@ -781,5 +750,3 @@ class SimulationUI:
             self.start_button.config(state=tk.NORMAL)
         if hasattr(self, "pause_button"):
             self.pause_button.config(state=tk.NORMAL, text="Pause Simulation")
-
-        print("Simulation reset.")

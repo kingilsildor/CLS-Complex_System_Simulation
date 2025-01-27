@@ -2,10 +2,7 @@ import numpy as np
 
 from src.utils import (
     CAR_HEAD,
-    HORIZONTAL_ROAD_VALUE_LEFT,
     INTERSECTION_DRIVE,
-    VERTICAL_ROAD_VALUE_RIGHT,
-
 )
 
 
@@ -66,26 +63,28 @@ class DensityTracker:
         --------
         dict : Dictionary containing traffic metrics
         """
-        # Get all intersection cells
-        intersection_mask = self.grid.underlying_grid == INTERSECTION_DRIVE
-        total_intersection_cells = np.sum(intersection_mask)
-
-
         # Count cars on roads and intersections
         cars_on_roads = 0
         cars_at_intersections = 0
+        total_cars = len(self.grid.cars)
+        moving_cars = len(moved_cars)
 
         # Check each car's position against the underlying grid
-        for x, y in zip(*car_positions):
+        for car in self.grid.cars:
+            x, y = car.head_position
             if self.grid.underlying_grid[x, y] == INTERSECTION_DRIVE:
                 cars_at_intersections += 1
+            else:
+                cars_on_roads += 1
 
-        # Calculate densities
-        road_density = cars_on_roads / (
-            self.grid.road_cells + self.grid.intersection_cells
+        # Calculate densities as percentages of occupied cells
+        road_density = (
+            cars_on_roads / self.grid.road_cells if self.grid.road_cells > 0 else 0
         )
-        intersection_density = cars_at_intersections / (
-            self.grid.road_cells + self.grid.intersection_cells
+        intersection_density = (
+            cars_at_intersections / self.grid.intersection_cells
+            if self.grid.intersection_cells > 0
+            else 0
         )
         global_density = total_cars / (
             self.grid.road_cells + self.grid.intersection_cells
@@ -93,37 +92,20 @@ class DensityTracker:
 
         # Calculate velocities and flow
         average_velocity = moving_cars / total_cars if total_cars > 0 else 0
-        traffic_flow = global_density * average_velocity  # J = ρ⟨v⟩
+        traffic_flow = global_density * average_velocity
         queue_length = total_cars - moving_cars
 
         return {
             "timestamp": len(self.metrics_history),
             "total_cars": total_cars,
             "moving_cars": moving_cars,
-            "road_density": road_density,
-            "intersection_density": intersection_density,
-            "global_density": global_density,
+            "road_density": road_density,  # Percentage of road cells occupied
+            "intersection_density": intersection_density,  # Percentage of intersection cells occupied
+            "global_density": global_density,  # Percentage of all available cells occupied
             "average_velocity": average_velocity,
             "traffic_flow": traffic_flow,
             "queue_length": queue_length,
         }
-
-    def get_history(self):
-        """
-        Get the complete history of metrics.
-
-        Returns:
-        --------
-        list : List of metric dictionaries over time
-        """
-        # Create mask for all valid positions (roads + intersections)
-        system_mask = (
-            (self.grid.underlying_grid == VERTICAL_ROAD_VALUE_RIGHT)
-            | (self.grid.underlying_grid == HORIZONTAL_ROAD_VALUE_LEFT)
-            | (self.grid.underlying_grid == INTERSECTION_DRIVE)
-        )
-        total_system_cells = np.sum(system_mask)
-
 
     def set_initial_cars(self):
         """Set the initial number of cars for percentage calculation."""
