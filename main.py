@@ -7,7 +7,7 @@ if __name__ == "__main__":
     show_ui = True
 
     if experiment:
-        run_experiment(show_ui=False)
+        run_experiment()
 
     elif not show_ui:
         ui = SimulationUI(None, show_ui=False)

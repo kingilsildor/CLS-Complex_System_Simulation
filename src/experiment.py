@@ -8,6 +8,7 @@ from src.grid import Grid
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
+import time
 
 
 def calculate_grid_size(blocks_size):
@@ -106,14 +107,14 @@ def create_analysis_plots(results, block_sizes):
         )
     plt.xlabel("Global Density (%)")
     plt.ylabel("Average Velocity")
-    plt.yscale("log")
     plt.grid(True, which="both", ls="-", alpha=0.2)
     plt.minorticks_on()
     plt.legend()
     plt.title("Effect of Block Size on Velocity vs Density")
 
     plt.tight_layout()
-    plt.savefig("data/density_analysis.png")
+    # timecode the plot
+    plt.savefig(f"data/block_size/density_analysis_{time.time()}.png")
     plt.close()
 
 
@@ -122,7 +123,7 @@ def run_experiment():
     # Configuration
     lane_width = 2
     block_sizes = [32, 64, 128, 256]
-    densities = range(5, 100, 5)
+    densities = range(5, 95, 1)
     steps = 100
 
     # Create parameter combinations for parallel processing
