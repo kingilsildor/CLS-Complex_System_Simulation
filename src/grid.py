@@ -155,10 +155,10 @@ class Grid:
 
         Returns:
         --------
-        set: A set of cars that moved in this time step.
+        set: A set of distances moved by cars
         """
-        moved_cars = set()
+        moved_distances = []
         for car in self.cars:
-            if car.move():  # If move() returns True, the car moved
-                moved_cars.add(car)
-        return moved_cars
+            distance = car.move()
+            moved_distances.append(distance)
+        return moved_distances

@@ -1,14 +1,15 @@
 import tkinter as tk
 from src.simulation import SimulationUI
-from src.experiment import run_experiment
+from src.experiment import run_speed_experiment
 
 if __name__ == "__main__":
     experiment = True
     show_ui = True
 
     if experiment:
-        run_experiment()
-        
+        run_speed_experiment()
+        # run_experiment()
+
     elif not show_ui:
         ui = SimulationUI(None, show_ui=False)
         grid_states = ui.run_simulation_without_ui(
@@ -26,7 +27,3 @@ if __name__ == "__main__":
         root = tk.Tk()
         ui = SimulationUI(root, show_ui=True, colour_blind=False)
         root.mainloop()
-
-
-if __name__ == "__main__":
-    main()

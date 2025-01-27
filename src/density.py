@@ -25,39 +25,29 @@ class DensityTracker:
         self.total_cars = len(grid.cars)
         self.metrics_history = []  # Store metrics over time
 
-    def update(self, moved_cars):
+    def update(self, moved_distances):
         """
         Update metrics for this time step.
 
         Parameters:
         -----------
-        moved_cars : set
-            Set of cars that moved this time step
+        moved_distances : set
+            Set of distances moved by each car (max_speed, 1, or 0)
         """
-        # Update waiting times for all cars
-        for car in self.grid.cars:
-            if car not in self.car_wait_times:
-                self.car_wait_times[car] = 0
-
-            if car in moved_cars:
-                self.car_wait_times[car] = 0  # Reset wait time if car moved
-            else:
-                self.car_wait_times[car] += 1  # Increment wait time if car didn't move
-
         # Calculate current metrics
-        metrics = self.get_metrics(moved_cars)
+        metrics = self.get_metrics(moved_distances)
         self.metrics_history.append(metrics)
 
         return metrics
 
-    def get_metrics(self, moved_cars):
+    def get_metrics(self, moved_distances):
         """
         Calculate current traffic metrics.
 
         Parameters:
         -----------
-        moved_cars : set
-            Set of cars that moved this time step
+        moved_distances : set
+            Set of distances moved by each car (max_speed, 1, or 0)
 
         Returns:
         --------
@@ -67,7 +57,8 @@ class DensityTracker:
         cars_on_roads = 0
         cars_at_intersections = 0
         total_cars = len(self.grid.cars)
-        moving_cars = len(moved_cars)
+        total_cells_moved = sum(moved_distances)
+        waiting_cars = sum(1 for cell in moved_distances if cell == 0)
 
         # Check each car's position against the underlying grid
         for car in self.grid.cars:
@@ -91,14 +82,14 @@ class DensityTracker:
         )
 
         # Calculate velocities and flow
-        average_velocity = moving_cars / total_cars if total_cars > 0 else 0
+        average_velocity = total_cells_moved / total_cars if total_cars > 0 else 0
+
         traffic_flow = global_density * average_velocity
-        queue_length = total_cars - moving_cars
+        queue_length = waiting_cars
 
         return {
             "timestamp": len(self.metrics_history),
             "total_cars": total_cars,
-            "moving_cars": moving_cars,
             "road_density": road_density,  # Percentage of road cells occupied
             "intersection_density": intersection_density,  # Percentage of intersection cells occupied
             "global_density": global_density,  # Percentage of all available cells occupied

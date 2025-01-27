@@ -110,7 +110,7 @@ We planed on collaborating in most parts of the assignment. We made a Trello boa
 
 
 - **Max**:
-- **Koen**:
+- **Koen**: 
 - **Bart**:
 - **Tycho**: Worked on the boilerplates of the code base, such as the `Car`, `Grid` and `Simulation` classes. Handeled the repository and helped with bug fixing.
 

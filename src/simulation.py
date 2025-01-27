@@ -69,10 +69,11 @@ class SimulationUI:
             self.ax_density.legend()
 
             # Velocity subplot (second from top)
+            max_speed = self.max_speed_slider.get()
             self.ax_velocity = self.fig.add_subplot(gs[1, 1])
             self.ax_velocity.set_xlabel("Steps")
             self.ax_velocity.set_ylabel("Average Velocity")
-            self.ax_velocity.set_ylim(0, 1)
+            self.ax_velocity.set_ylim(0, max_speed)
             self.ax_velocity.grid(True)
             (self.velocity_line,) = self.ax_velocity.plot(
                 [], [], "g-", label="Velocity"
@@ -322,9 +323,10 @@ class SimulationUI:
             self.ax_density.legend()
 
             # Setup velocity plot
+            max_speed = self.max_speed_slider.get()
             self.ax_velocity.set_xlabel("Steps")
             self.ax_velocity.set_ylabel("Average Velocity")
-            self.ax_velocity.set_ylim(0, 1)
+            self.ax_velocity.set_ylim(0, max_speed)
             self.ax_velocity.grid(True)
             (self.velocity_line,) = self.ax_velocity.plot(
                 [], [], "g-", label="Velocity"
@@ -359,7 +361,7 @@ class SimulationUI:
 
         _restart_simulation_if_needed()
         self.write_header()
-        
+
         # Reset data arrays
         self.velocity_data = []
 
@@ -368,11 +370,13 @@ class SimulationUI:
         frame_rate = self.frame_rate_slider.get()
         grid_size = self.grid_size_slider.get()
         blocks_size = self.blocks_size_slider.get()
-        lane_width = self.lane_width_slider.get()
+        max_speed = self.max_speed_slider.get()
 
         self.steps = steps
         self.grid = Grid(
-            grid_size=grid_size, blocks_size=blocks_size, lane_width=lane_width
+            grid_size=grid_size,
+            blocks_size=blocks_size,
+            max_speed=max_speed,
         )
         self.density_tracker = DensityTracker(self.grid)
 
@@ -585,7 +589,6 @@ class SimulationUI:
         steps=100,
         grid_size=25,
         blocks_size=5,
-        lane_width=2,
         car_count=100,
         output=False,
     ):
@@ -597,18 +600,18 @@ class SimulationUI:
         - steps (int): The number of steps to run the simulation.
         - grid_size (int): The size of the grid.
         - blocks_size (int): The size of the blocks in the grid.
-        - lane_width (int): The width of the lanes in the grid.
         - car_count (int): The number of cars to create in the simulation.
         """
 
         assert isinstance(steps, int), f"Steps must be an integer, got {type(steps)}"
 
         # Initialize grid and density tracker
-        self.grid = Grid(grid_size, blocks_size, lane_width)
+        self.grid = Grid(grid_size, blocks_size)
         assert isinstance(self.grid, Grid)
         self.density_tracker = DensityTracker(self.grid)
 
-        cars = self.create_cars(car_count)
+        # Create cars with 50% following speed limit by default
+        cars = self.create_cars(car_count, car_speed_percentage=50)
         self.grid.add_cars(cars)
 
         # Run simulation steps
@@ -624,8 +627,8 @@ class SimulationUI:
             )
 
         for step in range(steps):
-            moved_cars = self.grid.update_movement()
-            metrics = self.density_tracker.update(moved_cars)
+            moved_distances = self.grid.update_movement()
+            metrics = self.density_tracker.update(moved_distances)
             total_velocity += metrics["average_velocity"]
             total_road_density += metrics["road_density"]
             total_intersection_density += metrics["intersection_density"]
@@ -657,7 +660,7 @@ class SimulationUI:
         with open(f"data/simulation.{FILE_EXTENSION}", "w") as f:
             f.write(
                 "Step; Grid_State; Road_Density; Intersection_Density; Global_Density; "
-                "Average_Velocity; Traffic_Flow; Queue_Length; Total_Cars; Moving_Cars\n"
+                "Average_Velocity; Traffic_Flow; Queue_Length; Total_Cars\n"
             )
 
     def write_simulation(self, step: int, metrics: dict):
@@ -676,7 +679,7 @@ class SimulationUI:
                 f"{step}; {grid_state}; "
                 f"{metrics['road_density']}; {metrics['intersection_density']}; {metrics['global_density']}; "
                 f"{metrics['average_velocity']}; {metrics['traffic_flow']}; {metrics['queue_length']}; "
-                f"{metrics['total_cars']}; {metrics['moving_cars']}\n"
+                f"{metrics['total_cars']}\n"
             )
 
     def save_plots(self):
