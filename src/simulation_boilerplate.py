@@ -1,31 +1,32 @@
 import tkinter as tk
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+from src.car import Car
+from src.grid import Grid
+from src.utils import ROAD_CELLS
 
 
 class Simulation(ABC):
-    def __init__(self, root):
+    def __init__(self, root: tk.Tk, seed: int = 42):
         self.root = root
+        np.random.seed(seed)
 
-    @abstractmethod
     def start_simulation(self):
         pass
 
-    @abstractmethod
     def pause_simulation(self):
         pass
 
-    @abstractmethod
     def stop_simulation(self):
         pass
 
-    @abstractmethod
     def restart_simulation(self):
         pass
 
-    @abstractmethod
     def update_simulation(self):
         pass
 
@@ -171,11 +172,90 @@ class Simulation_1D(Simulation):
 
 
 class Simulation_2D(Simulation):
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        root: tk.Tk,
+        max_iter: int,
+        grid_size: int,
+        road_length: int,
+        road_max_speed: int,
+        car_count: int,
+        car_percentage_max_speed: int,
+    ):
+        super().__init__(root)
+        self.grid = Grid(grid_size, road_length)
+        self.max_iter = max_iter
+        self.grid_size = grid_size
+        self.road_length = road_length
+        self.road_max_speed = road_max_speed
+        self.car_count = car_count
+        self.car_percentage_max_speed = car_percentage_max_speed
 
-    def create_cars(self):
-        pass
+    def create_cars(self, grid: Grid, car_count: int, car_percentage_max_speed: int):
+        """
+        Create a list of cars with positions and directions based on traffic rules.
+        Cars will drive on the right side by default. Cars will only spawn on regular road cells,
+        not on intersections or rotaries. For vertical roads, right lane goes up and left lane
+        goes down. For horizontal roads, upper lane goes right and lower lane goes left.
+
+        Params:
+        -------
+        - grid (Grid): The grid object
+        - car_count (int): Number of cars to create
+        - drive_on_right (bool): If True, cars drive on the right side. If False, left side.
+
+        Returns:
+        --------
+        - list[Car]: List of Car objects
+
+        """
+        cars = np.zeros(car_count, dtype=object)
+
+        follow_limit_count = int(car_count * (car_percentage_max_speed / 100))
+        follow_limit_indices = set(
+            np.random.choice(car_count, follow_limit_count, replace=False)
+        )
+
+        for i in range(car_count):
+            while (
+                grid.grid[
+                    x := np.random.randint(0, grid.size),
+                    y := np.random.randint(0, grid.size),
+                ]
+                not in ROAD_CELLS
+            ):
+                pass
+
+            # Set "follow the speed limit" for cars
+            follow_limit = True if i in follow_limit_indices else False
+            car = Car(grid, position=(x, y), follow_limit=follow_limit)
+            assert isinstance(car, Car)
+            cars[i] = car
+
+        assert isinstance(cars, np.ndarray)
+        return cars
+
+    def start_simulation(self):
+        """
+        Start the simulation by creating cars and updating the grid at each step.
+        """
+        cars = self.create_cars(
+            self.grid, self.car_count, self.car_percentage_max_speed
+        )
+        self.grid.add_cars(cars)
+
+        self.grid_states = np.zeros(
+            (self.max_iter, self.grid_size, self.grid_size), dtype=int
+        )
+        for step in range(self.max_iter):
+            self.grid.update_movement()
+
+            new_grid = self.grid.grid.copy()
+            assert isinstance(new_grid, np.ndarray)
+            self.grid_states[step] = new_grid
+
+    def get_grid_states(self):
+        return self.grid_states
 
 
 class Simulation_2D_UI(Simulation_2D):
