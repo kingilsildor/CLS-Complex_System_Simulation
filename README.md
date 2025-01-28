@@ -1,6 +1,7 @@
 # Car Density Analysis Using Cellular Automata 🚗🏙️
 Within this repository we explore how a cellular automata can be used to model and analyze car density in urban environments.
 By simulating traffic on Manhattan-style grids, we compare 1D and 2D road networks and investigate how various parameters influence traffic flow and congestion.  
+The 1D cellular automata models traffic based on the Nagel-Schreckenberg experiment. The simulation models traffic flow on a one-dimensional road using a set of simple rules that govern the movement of cars.
 
 ## Description
 Based on the research done by Chopard, Luthi & Queloz (1996), we looked at modelling traffic for urban environments. Here, we use **cellular automata** as a lightweight and flexible approach to simulate traffic behavior. Our simulations model cars moving through streets and intersections, taking into account factors like:  
