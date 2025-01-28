@@ -302,14 +302,20 @@ class Simulation_1D(Simulation):
         text_widget.config(xscrollcommand=h_scrollbar.set)
 
         # Counter for time steps
-        step_counter = [0]
-        output_lines = []
-        running = [False]
-        model = None
-        speed_data = []
-        density_data = []
-        flow_data = []
-        time_space_data = []
+        ##############################
+        n_time_steps = self.time_steps_slider.get()
+
+        self.step_counter = 0
+        self.running = False
+        self.model = None
+
+        self.output_lines = np.zeros(n_time_steps, dtype=str)
+
+        self.speed_data = []
+        self.density_data = []
+        self.flow_data = []
+        self.time_space_data = []
+        ##############################
 
         # Set up the matplotlib figure and axis for density vs speed plot
         fig1, ax1 = plt.subplots()
@@ -328,7 +334,7 @@ class Simulation_1D(Simulation):
             return (line1,)
 
         def update_plot1(frame):
-            line1.set_data(density_data, speed_data)
+            line1.set_data(self.density_data, self.speed_data)
             return (line1,)
 
         ani1 = FuncAnimation(
@@ -356,7 +362,7 @@ class Simulation_1D(Simulation):
             return (line2,)
 
         def update_plot2(frame):
-            line2.set_data(density_data, flow_data)
+            line2.set_data(self.density_data, self.flow_data)
             return (line2,)
 
         ani2 = FuncAnimation(
@@ -388,7 +394,7 @@ class Simulation_1D(Simulation):
         def update_plot3(frame):
             x_data = []
             y_data = []
-            for t, positions in enumerate(time_space_data):
+            for t, positions in enumerate(self.time_space_data):
                 x_data.extend(positions)
                 y_data.extend([t] * len(positions))
             line3.set_data(x_data, y_data)
@@ -425,53 +431,57 @@ class Simulation_1D(Simulation):
                     "Number of cars cannot be greater than the length of the road",
                 )
                 return
-            if not running[0]:
-                running[0] = True
+            if not self.running:
+                self.running = True
                 initialize_model()
                 update_simulation()
 
         def stop_simulation():
-            running[0] = False
+            self.running = False
 
         def reset_simulation():
             stop_simulation()
-            step_counter[0] = 0
-            output_lines.clear()
+            self.step_counter = 0
+            self.output_lines[:] = 0
             text_widget.delete(1.0, tk.END)
-            time_space_data.clear()
+            self.time_space_data.clear()
             initialize_model()
 
         def update_simulation():
-            if running[0] and step_counter[0] < self.time_steps_slider.get():
-                model.update()
-                output_lines.append(model.visualize())
-                text_widget.insert(tk.END, model.visualize() + "\n")
+            step = self.step_counter
+            if self.running and step < self.time_steps_slider.get():
+                self.model.update()
+                self.output_lines[step] = self.model.visualize()
+                text_widget.insert(tk.END, self.model.visualize() + "\n")
                 text_widget.see(tk.END)  # Scroll to the end
+
                 avg_speed = (
-                    model.total_speed / self.car_count_slider.get()
+                    self.model.total_speed / self.car_count_slider.get()
                 )  # Average speed of cars
-                speed_data.append(avg_speed)
+                self.speed_data.append(avg_speed)
+
                 density = self.car_count_slider.get() / self.road_length_slider.get()
-                density_data.append(density)  # Collect density data
-                flow = model.flow / self.road_length_slider.get()  # Calculate flow
-                flow_data.append(flow)  # Collect flow data
-                positions = [i for i, x in enumerate(model.road) if x == 1]
-                time_space_data.append(positions)  # Collect time-space data
-                step_counter[0] += 1
+                self.density_data.append(density)  # Collect density data
+
+                flow = self.model.flow / self.road_length_slider.get()  # Calculate flow
+                self.flow_data.append(flow)  # Collect flow data
+
+                positions = [i for i, x in enumerate(self.model.road) if x == 1]
+                self.time_space_data.append(positions)  # Collect time-space data
+
+                self.step_counter += 1
                 root.after(100, update_simulation)  # Schedule the next update
-            # else:
-            #    plot_density_vs_speed()
 
         def initialize_model():
-            nonlocal model
             print(
                 f"Initializing model with length={self.road_length_slider.get()}, num_cars={self.car_count_slider.get()}, max_speed={self.max_speed_slider.get()}"
             )
-            model = NagelSchreckenberg(
+            self.model = NagelSchreckenberg(
                 self.road_length_slider.get(),
                 self.car_count_slider.get(),
                 self.max_speed_slider.get(),
             )
+            assert isinstance(self.model, NagelSchreckenberg)
 
         def on_closing():
             stop_simulation()
