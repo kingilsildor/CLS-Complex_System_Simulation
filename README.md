@@ -97,9 +97,9 @@ conda install --file requirements.txt
 - Collission and Interaction: Checks if cars correctly detect other vehicles in front or at intersections.
 
 To run all tests, make sure that the imports are changed in Car.py and Grid.py from "src.utils" to "utils" for all imports:
-
+```zsh
 pytest test_simulation.py
-
+```
 
 ## File description
 - **`data/simulation.txt`**: A text file containing data results related to the simulation.
