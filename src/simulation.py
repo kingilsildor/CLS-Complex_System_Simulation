@@ -456,7 +456,7 @@ class SimulationUI:
         """
         Write the header to the simulation output file.
         """
-        with open(f"../data/simulation.{FILE_EXTENSION}", "w") as f:
+        with open(f"data/simulation.{FILE_EXTENSION}", "w") as f:
             f.write(
                 "Step; Grid_State; Road_Density; Intersection_Density; Total_Cars\n"
             )

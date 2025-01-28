@@ -1,7 +1,7 @@
 import numpy as np
 
 # from src.grid import Grid
-from grid import Grid
+from src.grid import Grid
 
 from src.utils import (
     CAR_HEAD,
