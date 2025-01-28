@@ -100,6 +100,7 @@ conda install --file requirements.txt
 - **`src/grid.py`**: Manages grid-based operations and grid-related logic in the simulation.
 - **`src/simulation.py`**: Core simulation code, to control the different components.
 - **`src/utils.py`**: Utility functions used across the project for shared functionality.
+- **`src/test_simulation.py`**: Test cases for the Grid and Car classes.
 - **`main.py`**: The entry point of the project, to initiate the simulation.
 - **`requirements.txt`**: Lists Python dependencies required for the project.
 
@@ -111,7 +112,7 @@ We planed on collaborating in most parts of the assignment. We made a Trello boa
 
 - **Max**:
 - **Koen**:
-- **Bart**:
+- **Bart**: Worked on the Car logic in collaboration with Tycho and implemented the testing.
 - **Tycho**: Worked on the boilerplates of the code base, such as the `Car`, `Grid` and `Simulation` classes. Handeled the repository and helped with bug fixing.
 
 All the commits can be found in main.
