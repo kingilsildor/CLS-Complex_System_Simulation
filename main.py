@@ -1,30 +1,31 @@
 import tkinter as tk
 
-from src.experiment import run_speed_experiment
-from src.simulation import SimulationUI
+from src.simulation_boilerplate import Simulation_1D, Simulation_2D
+
+
+def run_2D_simulation():
+    root = tk.Tk()
+    sim = Simulation_2D(
+        root,
+        max_iter=100,
+        grid_size=15,
+        road_length=10,
+        road_max_speed=2,
+        car_count=4,
+        car_percentage_max_speed=50,
+    )
+    sim.start_simulation()
+    grids = sim.get_grid_states()
+    for grid in grids:
+        print(grid)
+        print("--------------------")
+
+
+def run_1D_simulation():
+    root = tk.Tk()
+    Simulation_1D(root)
+
 
 if __name__ == "__main__":
-    experiment = False
-    show_ui = True
-
-    if experiment:
-        run_speed_experiment()
-        # run_experiment()
-
-    elif not show_ui:
-        ui = SimulationUI(None, show_ui=False)
-        grid_states = ui.run_simulation_without_ui(
-            steps=100,
-            grid_size=15,
-            blocks_size=10,
-            lane_width=2,
-            car_count=4,
-            output=False,
-        )
-        for state in grid_states:
-            print(state)
-            print("--------------------")
-    else:
-        root = tk.Tk()
-        ui = SimulationUI(root, show_ui=True, colour_blind=False)
-        root.mainloop()
+    # run_2D_simulation()
+    run_1D_simulation()
