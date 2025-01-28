@@ -11,8 +11,7 @@ from src.car import Car
 from src.density import DensityTracker
 from src.grid import Grid
 from src.nagel_schreckenberg import NagelSchreckenberg
-from src.utils import ROAD_CELLS, MAX_SPEED, MIN_SPEED, FILE_EXTENSION
-from src.simulation import CAR_DIRECTION
+from src.utils import CAR_DIRECTION, FILE_EXTENSION, MAX_SPEED, MIN_SPEED, ROAD_CELLS
 
 
 class Simulation(ABC):
@@ -588,26 +587,9 @@ class Simulation_1D(Simulation):
         self.create_button(control_frame, text="Close", command=self.close_simulation)
 
 
-class Simulation_2D(Simulation):
-    def __init__(
-        self,
-        root: tk.Tk,
-        max_iter: int,
-        grid_size: int,
-        road_length: int,
-        road_max_speed: int,
-        car_count: int,
-        car_percentage_max_speed: int,
-        seed: int = 42,
-    ):
+class Simulation_2D(Simulation, ABC):
+    def __init__(self, root, seed=42):
         super().__init__(root, seed)
-        self.grid = Grid(grid_size, road_length)
-        self.max_iter = max_iter
-        self.grid_size = grid_size
-        self.road_length = road_length
-        self.road_max_speed = road_max_speed
-        self.car_count = car_count
-        self.car_percentage_max_speed = car_percentage_max_speed
 
     def create_cars(
         self, grid: Grid, car_count: int, car_percentage_max_speed: int
@@ -654,6 +636,28 @@ class Simulation_2D(Simulation):
 
         assert isinstance(cars, np.ndarray)
         return cars
+
+
+class Simulation_2D_NoUI(Simulation_2D):
+    def __init__(
+        self,
+        root: tk.Tk,
+        max_iter: int,
+        grid_size: int,
+        road_length: int,
+        road_max_speed: int,
+        car_count: int,
+        car_percentage_max_speed: int,
+        seed: int = 42,
+    ):
+        super().__init__(root, seed)
+        self.grid = Grid(grid_size, road_length)
+        self.max_iter = max_iter
+        self.grid_size = grid_size
+        self.road_length = road_length
+        self.road_max_speed = road_max_speed
+        self.car_count = car_count
+        self.car_percentage_max_speed = car_percentage_max_speed
 
     def start_simulation(self, output: bool = True):
         """
@@ -739,279 +743,291 @@ class Simulation_2D(Simulation):
 
 
 class Simulation_2D_UI(Simulation_2D):
-    def __init__(
-        self,
-        max_iter,
-        grid_size,
-        road_length,
-        road_max_speed,
-        car_count,
-        car_percentage_max_speed,
-    ):
-        super().__init__(
-            root=tk.Tk(),
-            max_iter=max_iter,
-            grid_size=grid_size,
-            road_length=road_length,
-            road_max_speed=road_max_speed,
-            car_count=car_count,
-            car_percentage_max_speed=car_percentage_max_speed,
+    def __init__(self, root, seed=42, colour_blind=False):
+        super().__init__(root, seed)
+
+        self.root.title("Car Traffic in a 2D street network.")
+
+        self.control_frame = tk.Frame(self.root)
+        self.control_frame.pack(side=tk.LEFT, padx=10)
+        assert isinstance(self.control_frame, tk.Frame)
+
+        self.plot_frame = tk.Frame(self.root)
+        self.plot_frame.pack(side=tk.RIGHT, padx=10)
+        assert isinstance(self.plot_frame, tk.Frame)
+
+        self.animation = None
+        self.is_paused = False
+        self.colour_blind = colour_blind
+
+        self.init_sliders(self.control_frame)
+        self.init_buttons()
+        self.init_metrics_display()
+        self.init_plot()
+
+    def init_plot(self):
+        """Initialize the matplotlib plots"""
+        self.fig = plt.Figure(figsize=(12, 12))
+        gs = self.fig.add_gridspec(4, 2, width_ratios=[1, 1])
+
+        # Grid subplot (spans all rows on the left)
+        self.ax_grid = self.fig.add_subplot(gs[:, 0])
+        self.ax_grid.set_xticks([])
+        self.ax_grid.set_yticks([])
+
+        # Density subplot (top right)
+        self.ax_density = self.fig.add_subplot(gs[0, 1])
+        self.ax_density.set_xlabel("Steps")
+        self.ax_density.set_ylabel("Density (%)")
+        self.ax_density.set_ylim(0, 100)
+        self.ax_density.grid(True)
+        (self.road_density_line,) = self.ax_density.plot([], [], "b-", label="Road")
+        (self.intersection_density_line,) = self.ax_density.plot(
+            [], [], "r-", label="Intersection"
+        )
+        self.ax_density.legend()
+
+        # Velocity subplot (second from top)
+        max_speed = self.max_speed_slider.get()
+        self.ax_velocity = self.fig.add_subplot(gs[1, 1])
+        self.ax_velocity.set_xlabel("Steps")
+        self.ax_velocity.set_ylabel("Average Velocity")
+        self.ax_velocity.set_ylim(0, max_speed)
+        self.ax_velocity.grid(True)
+        (self.velocity_line,) = self.ax_velocity.plot([], [], "g-", label="Velocity")
+        self.ax_velocity.legend()
+
+        # Traffic flow subplot (third from top)
+        self.ax_flow = self.fig.add_subplot(gs[2, 1])
+        self.ax_flow.set_xlabel("Steps")
+        self.ax_flow.set_ylabel("Traffic Flow")
+        self.ax_flow.set_ylim(0, 1)
+        self.ax_flow.grid(True)
+        (self.flow_line,) = self.ax_flow.plot([], [], "m-", label="Flow")
+        self.ax_flow.legend()
+
+        # Queue subplot (bottom right)
+        self.ax_queue = self.fig.add_subplot(gs[3, 1])
+        self.ax_queue.set_xlabel("Steps")
+        self.ax_queue.set_ylabel("Queue Length")
+        self.ax_queue.set_ylim(0, self.car_count_slider.get())
+        self.ax_queue.grid(True)
+        (self.queue_line,) = self.ax_queue.plot([], [], "c-", label="Queue")
+        self.ax_queue.legend()
+
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
+        self.canvas.get_tk_widget().pack()
+        assert isinstance(self.canvas, FigureCanvasTkAgg)
+
+        self.fig.tight_layout()
+
+        title = "Welcome to SimCity 2000"
+        self.ax_grid.set_title(title)
+
+        self.canvas.draw()
+
+    def init_data_plot(self):
+        """Set up the plot for the simulation."""
+        # Clear previous plots
+        self.ax_grid.clear()
+        self.ax_density.clear()
+        self.ax_velocity.clear()
+        self.ax_flow.clear()
+        self.ax_queue.clear()
+
+        # Setup grid plot
+        self.ax_grid.set_xticks([])
+        self.ax_grid.set_yticks([])
+        cmap = "Greys" if self.colour_blind else "rainbow"
+        self.im = self.ax_grid.imshow(
+            self.grid.grid, cmap=cmap, interpolation="nearest"
         )
 
-        def _init_plot():
-            """Initialize the matplotlib plots"""
-            self.fig = plt.Figure(figsize=(12, 12))
-            gs = self.fig.add_gridspec(4, 2, width_ratios=[1, 1])
+        # Initialize data arrays
+        self.step_data = []
+        self.velocity_data = []
+        self.road_density_data = []
+        self.intersection_density_data = []
+        self.flow_data = []
+        self.queue_data = []
 
-            # Grid subplot (spans all rows on the left)
-            self.ax_grid = self.fig.add_subplot(gs[:, 0])
-            self.ax_grid.set_xticks([])
-            self.ax_grid.set_yticks([])
+        # Setup density plot
+        self.ax_density.set_xlabel("Steps")
+        self.ax_density.set_ylabel("Density (%)")
+        self.ax_density.set_ylim(0, 100)
+        self.ax_density.grid(True)
+        (self.road_density_line,) = self.ax_density.plot([], [], "b-", label="Road")
+        (self.intersection_density_line,) = self.ax_density.plot(
+            [], [], "r-", label="Intersection"
+        )
+        self.ax_density.legend()
 
-            # Density subplot (top right)
-            self.ax_density = self.fig.add_subplot(gs[0, 1])
-            self.ax_density.set_xlabel("Steps")
-            self.ax_density.set_ylabel("Density (%)")
-            self.ax_density.set_ylim(0, 100)
-            self.ax_density.grid(True)
-            (self.road_density_line,) = self.ax_density.plot([], [], "b-", label="Road")
-            (self.intersection_density_line,) = self.ax_density.plot(
-                [], [], "r-", label="Intersection"
-            )
-            self.ax_density.legend()
+        # Setup velocity plot
+        max_speed = self.max_speed_slider.get()
+        self.ax_velocity.set_xlabel("Steps")
+        self.ax_velocity.set_ylabel("Average Velocity")
+        self.ax_velocity.set_ylim(0, max_speed)
+        self.ax_velocity.grid(True)
+        (self.velocity_line,) = self.ax_velocity.plot([], [], "g-", label="Velocity")
+        self.ax_velocity.legend()
 
-            # Velocity subplot (second from top)
-            max_speed = self.max_speed_slider.get()
-            self.ax_velocity = self.fig.add_subplot(gs[1, 1])
-            self.ax_velocity.set_xlabel("Steps")
-            self.ax_velocity.set_ylabel("Average Velocity")
-            self.ax_velocity.set_ylim(0, max_speed)
-            self.ax_velocity.grid(True)
-            (self.velocity_line,) = self.ax_velocity.plot(
-                [], [], "g-", label="Velocity"
-            )
-            self.ax_velocity.legend()
+        # Setup flow plot
+        self.ax_flow.set_xlabel("Steps")
+        self.ax_flow.set_ylabel("Traffic Flow")
+        self.ax_flow.set_ylim(0, 1)
+        self.ax_flow.grid(True)
+        (self.flow_line,) = self.ax_flow.plot([], [], "m-", label="Flow")
+        self.ax_flow.legend()
 
-            # Traffic flow subplot (third from top)
-            self.ax_flow = self.fig.add_subplot(gs[2, 1])
-            self.ax_flow.set_xlabel("Steps")
-            self.ax_flow.set_ylabel("Traffic Flow")
-            self.ax_flow.set_ylim(0, 1)
-            self.ax_flow.grid(True)
-            (self.flow_line,) = self.ax_flow.plot([], [], "m-", label="Flow")
-            self.ax_flow.legend()
+        # Setup queue plot
+        self.ax_queue.set_xlabel("Steps")
+        self.ax_queue.set_ylabel("Queue Length")
+        self.ax_queue.set_ylim(0, self.car_count_slider.get())
+        self.ax_queue.grid(True)
+        (self.queue_line,) = self.ax_queue.plot([], [], "c-", label="Queue")
+        self.ax_queue.legend()
 
-            # Queue subplot (bottom right)
-            self.ax_queue = self.fig.add_subplot(gs[3, 1])
-            self.ax_queue.set_xlabel("Steps")
-            self.ax_queue.set_ylabel("Queue Length")
-            self.ax_queue.set_ylim(0, self.car_count_slider.get())
-            self.ax_queue.grid(True)
-            (self.queue_line,) = self.ax_queue.plot([], [], "c-", label="Queue")
-            self.ax_queue.legend()
+        # Set x-axis limits based on total steps
+        total_steps = self.steps_slider.get()
+        self.ax_density.set_xlim(0, total_steps)
+        self.ax_velocity.set_xlim(0, total_steps)
+        self.ax_flow.set_xlim(0, total_steps)
+        self.ax_queue.set_xlim(0, total_steps)
 
-            self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
-            self.canvas.get_tk_widget().pack()
-            assert isinstance(self.canvas, FigureCanvasTkAgg)
+        self.fig.tight_layout()
+        self.canvas.draw()
 
-            self.fig.tight_layout()
+    def init_metrics_display(self):
+        """Initialize the metrics display panel"""
+        self.metrics_frame = tk.Frame(self.control_frame)
+        self.metrics_frame.pack(pady=10)
 
-            title = "Welcome to SimCity 2000"
-            self.ax_grid.set_title(title)
+        # Create labels for each metric
+        self.metrics_labels = {}
+        metrics = [
+            "Global Density",
+            "Road Density",
+            "Intersection Density",
+            "Average Velocity",
+            "Traffic Flow",
+            "Queue Length",
+        ]
 
-            self.canvas.draw()
+        for metric in metrics:
+            frame = tk.Frame(self.metrics_frame)
+            frame.pack(pady=2)
 
-        def _init_metrics_display():
-            """Initialize the metrics display panel"""
-            self.metrics_frame = tk.Frame(self.controls_frame)
-            self.metrics_frame.pack(pady=10)
+            label = tk.Label(frame, text=f"{metric}:", width=20, anchor="w")
+            label.pack(side=tk.LEFT)
 
-            # Create labels for each metric
-            self.metrics_labels = {}
-            metrics = [
-                "Global Density",
-                "Road Density",
-                "Intersection Density",
-                "Average Velocity",
-                "Traffic Flow",
-                "Queue Length",
-            ]
+            value = tk.Label(frame, text="0", width=10)
+            value.pack(side=tk.LEFT)
 
-            for metric in metrics:
-                frame = tk.Frame(self.metrics_frame)
-                frame.pack(pady=2)
+            self.metrics_labels[metric] = value
 
-                label = tk.Label(frame, text=f"{metric}:", width=20, anchor="w")
-                label.pack(side=tk.LEFT)
+    def init_buttons(self):
+        """Initialize control buttons"""
+        self.start_button = tk.Button(
+            self.control_frame,
+            text="Start Simulation",
+            command=self.start_simulation,
+        )
+        self.start_button.pack(pady=10)
 
-                value = tk.Label(frame, text="0", width=10)
-                value.pack(side=tk.LEFT)
+        self.pause_button = tk.Button(
+            self.control_frame,
+            text="Pause Simulation",
+            command=self.pause_simulation,
+        )
+        self.pause_button.pack(pady=5)
 
-                self.metrics_labels[metric] = value
+        self.reset_button = tk.Button(
+            self.control_frame,
+            text="Reset Simulation",
+            command=self.reset_simulation,
+        )
+        self.reset_button.pack(pady=5)
 
-        def _init_buttons():
-            """Initialize control buttons"""
-            self.start_button = tk.Button(
-                self.controls_frame,
-                text="Start Simulation",
-                command=self.start_simulation,
-            )
-            self.start_button.pack(pady=10)
+    def init_sliders(self, control_frame: tk.Frame):
+        """Initialize the control sliders"""
+        self.steps_slider = tk.IntVar(value=250)
+        assert isinstance(self.steps_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Steps",
+            min_val=100,
+            max_val=1000,
+            variable=self.steps_slider,
+        )
 
-            self.pause_button = tk.Button(
-                self.controls_frame,
-                text="Pause Simulation",
-                command=self.pause_simulation,
-            )
-            self.pause_button.pack(pady=5)
+        self.frame_rate_slider = tk.IntVar(value=50)
+        assert isinstance(self.frame_rate_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Frame Rate",
+            min_val=1,
+            max_val=400,
+            variable=self.frame_rate_slider,
+        )
 
-            self.reset_button = tk.Button(
-                self.controls_frame,
-                text="Reset Simulation",
-                command=self.reset_simulation,
-            )
-            self.reset_button.pack(pady=5)
+        self.grid_size_slider = tk.IntVar(value=50)
+        assert isinstance(self.grid_size_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Grid Size",
+            min_val=10,
+            max_val=100,
+            variable=self.grid_size_slider,
+        )
 
-        def _init_sliders():
-            """Initialize the control sliders"""
-            self.steps_slider = self.create_slider(
-                "Steps", default_val=250, min_val=50, max_val=1000
-            )
+        self.blocks_size_slider = tk.IntVar(value=20)
+        assert isinstance(self.blocks_size_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Blocks Size",
+            min_val=2,
+            max_val=50,
+            variable=self.blocks_size_slider,
+        )
 
-            self.frame_rate_slider = self.create_slider(
-                "Frame Rate", default_val=50, min_val=1, max_val=500
-            )
+        self.car_count_slider = tk.IntVar(value=100)
+        assert isinstance(self.car_count_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Car Count",
+            min_val=1,
+            max_val=1250,
+            variable=self.car_count_slider,
+        )
 
-            self.grid_size_slider = self.create_slider(
-                "Grid Size", default_val=50, min_val=10, max_val=100
-            )
+        self.max_speed_slider = tk.IntVar(value=2)
+        assert isinstance(self.max_speed_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Max Speed",
+            min_val=MIN_SPEED,
+            max_val=MAX_SPEED,
+            variable=self.max_speed_slider,
+        )
 
-            self.blocks_size_slider = self.create_slider(
-                "Blocks Size", default_val=20, min_val=2, max_val=50
-            )
+        self.percentage_on_max_speed = tk.IntVar(value=100)
+        assert isinstance(self.percentage_on_max_speed, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Percentage on Max Speed",
+            min_val=0,
+            max_val=100,
+            variable=self.percentage_on_max_speed,
+        )
 
-            self.car_count_slider = self.create_slider(
-                "Car Count", default_val=100, min_val=1, max_val=1250
-            )
-
-            self.max_speed_slider = self.create_slider(
-                "Max Speed", default_val=2, min_val=MIN_SPEED, max_val=MAX_SPEED
-            )
-
-            self.percentage_on_max_speed = self.create_slider(
-                "Percentage on Max Speed", default_val=100, min_val=0, max_val=100
-            )
-
-        if self.show_ui:
-            self.master.title("Car Traffic in a 2D street network.")
-
-            self.controls_frame = tk.Frame(self.master)
-            self.controls_frame.pack(side=tk.LEFT, padx=10)
-            assert isinstance(self.controls_frame, tk.Frame)
-
-            self.plot_frame = tk.Frame(self.master)
-            self.plot_frame.pack(side=tk.RIGHT, padx=10)
-            assert isinstance(self.plot_frame, tk.Frame)
-
-            _init_sliders()
-            _init_buttons()
-            _init_metrics_display()
-            _init_plot()
+    def init_grid(self, grid_size: int, blocks_size: int, max_speed: int) -> Grid:
+        """
+        Initialize the grid with the given parameters.
+        """
+        return Grid(grid_size=grid_size, blocks_size=blocks_size, max_speed=max_speed)
 
     def start_simulation(self):
-        def _restart_simulation_if_needed():
-            """Restart the simulation if one is already running."""
-            if self.animation and hasattr(self.animation, "event_source"):
-                self.animation.event_source.stop()
-                self.ax_grid.clear()
-                self.ax_density.clear()
-                self.ax_velocity.clear()
-                self.ax_flow.clear()
-                self.ax_queue.clear()
-                self.canvas.draw()
-
-        def _initialize_grid(grid_size: int, blocks_size: int, max_speed: int) -> Grid:
-            """
-            Initialize the grid with the given parameters.
-            """
-            return Grid(
-                grid_size=grid_size, blocks_size=blocks_size, max_speed=max_speed
-            )
-
-        def _setup_plot():
-            """Set up the plot for the simulation."""
-            # Clear previous plots
-            self.ax_grid.clear()
-            self.ax_density.clear()
-            self.ax_velocity.clear()
-            self.ax_flow.clear()
-            self.ax_queue.clear()
-
-            # Setup grid plot
-            self.ax_grid.set_xticks([])
-            self.ax_grid.set_yticks([])
-            cmap = "Greys" if self.colour_blind else "rainbow"
-            self.im = self.ax_grid.imshow(
-                self.grid.grid, cmap=cmap, interpolation="nearest"
-            )
-
-            # Initialize data arrays
-            self.step_data = []
-            self.velocity_data = []
-            self.road_density_data = []
-            self.intersection_density_data = []
-            self.flow_data = []
-            self.queue_data = []
-
-            # Setup density plot
-            self.ax_density.set_xlabel("Steps")
-            self.ax_density.set_ylabel("Density (%)")
-            self.ax_density.set_ylim(0, 100)
-            self.ax_density.grid(True)
-            (self.road_density_line,) = self.ax_density.plot([], [], "b-", label="Road")
-            (self.intersection_density_line,) = self.ax_density.plot(
-                [], [], "r-", label="Intersection"
-            )
-            self.ax_density.legend()
-
-            # Setup velocity plot
-            max_speed = self.max_speed_slider.get()
-            self.ax_velocity.set_xlabel("Steps")
-            self.ax_velocity.set_ylabel("Average Velocity")
-            self.ax_velocity.set_ylim(0, max_speed)
-            self.ax_velocity.grid(True)
-            (self.velocity_line,) = self.ax_velocity.plot(
-                [], [], "g-", label="Velocity"
-            )
-            self.ax_velocity.legend()
-
-            # Setup flow plot
-            self.ax_flow.set_xlabel("Steps")
-            self.ax_flow.set_ylabel("Traffic Flow")
-            self.ax_flow.set_ylim(0, 1)
-            self.ax_flow.grid(True)
-            (self.flow_line,) = self.ax_flow.plot([], [], "m-", label="Flow")
-            self.ax_flow.legend()
-
-            # Setup queue plot
-            self.ax_queue.set_xlabel("Steps")
-            self.ax_queue.set_ylabel("Queue Length")
-            self.ax_queue.set_ylim(0, self.car_count_slider.get())
-            self.ax_queue.grid(True)
-            (self.queue_line,) = self.ax_queue.plot([], [], "c-", label="Queue")
-            self.ax_queue.legend()
-
-            # Set x-axis limits based on total steps
-            total_steps = self.steps_slider.get()
-            self.ax_density.set_xlim(0, total_steps)
-            self.ax_velocity.set_xlim(0, total_steps)
-            self.ax_flow.set_xlim(0, total_steps)
-            self.ax_queue.set_xlim(0, total_steps)
-
-            self.fig.tight_layout()
-            self.canvas.draw()
-
-        _restart_simulation_if_needed()
+        self.restart_simulation_if_needed()
         self.write_header()
 
         # Reset data arrays
@@ -1035,9 +1051,9 @@ class Simulation_2D_UI(Simulation_2D):
         # Create cars
         car_count = self.car_count_slider.get()
         car_speed_percentage = self.percentage_on_max_speed.get()
-        cars = self.create_cars(car_count, car_speed_percentage)
+        cars = self.create_cars(self.grid, car_count, car_speed_percentage)
         self.grid.add_cars(cars)
-        _setup_plot()
+        self.init_data_plot()
 
         self.start_button.config(state=tk.DISABLED)
         self.pause_button.config(state=tk.NORMAL)
@@ -1093,57 +1109,18 @@ class Simulation_2D_UI(Simulation_2D):
         if hasattr(self, "pause_button"):
             self.pause_button.config(state=tk.NORMAL, text="Pause Simulation")
 
-    def save_plots(self):
+    def restart_simulation_if_needed(self):
         """
-        Save all plots to files in the data directory.
+        Restart the simulation if one is already running.
         """
-        # Create a new figure for saving
-        save_fig = plt.Figure(figsize=(12, 12))
-
-        # Density plot
-        ax1 = save_fig.add_subplot(411)
-        ax1.plot(self.step_data, self.road_density_data, "b-", label="Road")
-        ax1.plot(
-            self.step_data, self.intersection_density_data, "r-", label="Intersection"
-        )
-        ax1.set_xlabel("Steps")
-        ax1.set_ylabel("Density (%)")
-        ax1.grid(True)
-        ax1.legend()
-
-        # Velocity plot
-        ax2 = save_fig.add_subplot(412)
-        ax2.plot(self.step_data, self.velocity_data, "g-", label="Velocity")
-        ax2.set_xlabel("Steps")
-        ax2.set_ylabel("Average Velocity")
-        ax2.grid(True)
-        ax2.legend()
-
-        # Traffic flow plot
-        ax3 = save_fig.add_subplot(413)
-        ax3.plot(self.step_data, self.flow_data, "m-", label="Flow")
-        ax3.set_xlabel("Steps")
-        ax3.set_ylabel("Traffic Flow")
-        ax3.grid(True)
-        ax3.legend()
-
-        # Queue plot
-        ax4 = save_fig.add_subplot(414)
-        ax4.plot(self.step_data, self.queue_data, "c-", label="Queue")
-        ax4.set_xlabel("Steps")
-        ax4.set_ylabel("Queue Length")
-        ax4.grid(True)
-        ax4.legend()
-
-        save_fig.tight_layout()
-        save_fig.savefig("data/metrics_plots.png")
-
-        # Save the grid state
-        grid_fig = plt.Figure(figsize=(8, 8))
-        ax_grid = grid_fig.add_subplot(111)
-        ax_grid.imshow(self.grid.grid, cmap="Greys" if self.colour_blind else "rainbow")
-        ax_grid.set_title(f"Final Grid State\nTotal Cars: {len(self.grid.cars)}")
-        grid_fig.savefig("data/final_grid_state.png")
+        if self.animation and hasattr(self.animation, "event_source"):
+            self.animation.event_source.stop()
+            self.ax_grid.clear()
+            self.ax_density.clear()
+            self.ax_velocity.clear()
+            self.ax_flow.clear()
+            self.ax_queue.clear()
+            self.canvas.draw()
 
     def pause_simulation(self):
         """
@@ -1186,38 +1163,37 @@ class Simulation_2D_UI(Simulation_2D):
         self.write_simulation(frame, metrics)
 
         # Update metrics display
-        if self.show_ui:
-            metric_mappings = {
-                "Global Density": "global_density",
-                "Road Density": "road_density",
-                "Intersection Density": "intersection_density",
-                "Average Velocity": "average_velocity",
-                "Traffic Flow": "traffic_flow",
-                "Queue Length": "queue_length",
-            }
+        metric_mappings = {
+            "Global Density": "global_density",
+            "Road Density": "road_density",
+            "Intersection Density": "intersection_density",
+            "Average Velocity": "average_velocity",
+            "Traffic Flow": "traffic_flow",
+            "Queue Length": "queue_length",
+        }
 
-            for display_name, metric_key in metric_mappings.items():
-                if display_name in self.metrics_labels and metric_key in metrics:
-                    if metric_key in [
-                        "road_density",
-                        "intersection_density",
-                        "global_density",
-                    ]:
-                        self.metrics_labels[display_name].config(
-                            text=f"{metrics[metric_key] * 100:.1f}%"
-                        )
-                    elif metric_key == "queue_length":
-                        self.metrics_labels[display_name].config(
-                            text=f"{metrics[metric_key]}"
-                        )
-                    elif metric_key == "traffic_flow":
-                        self.metrics_labels[display_name].config(
-                            text=f"{metrics[metric_key]:.3f}"
-                        )
-                    elif metric_key == "average_velocity":
-                        self.metrics_labels[display_name].config(
-                            text=f"{metrics[metric_key]:.2f}"
-                        )
+        for display_name, metric_key in metric_mappings.items():
+            if display_name in self.metrics_labels and metric_key in metrics:
+                if metric_key in [
+                    "road_density",
+                    "intersection_density",
+                    "global_density",
+                ]:
+                    self.metrics_labels[display_name].config(
+                        text=f"{metrics[metric_key] * 100:.1f}%"
+                    )
+                elif metric_key == "queue_length":
+                    self.metrics_labels[display_name].config(
+                        text=f"{metrics[metric_key]}"
+                    )
+                elif metric_key == "traffic_flow":
+                    self.metrics_labels[display_name].config(
+                        text=f"{metrics[metric_key]:.3f}"
+                    )
+                elif metric_key == "average_velocity":
+                    self.metrics_labels[display_name].config(
+                        text=f"{metrics[metric_key]:.2f}"
+                    )
 
         # Update grid title
         title = f"Simulation step {frame + 1}\n"
@@ -1280,6 +1256,58 @@ class Simulation_2D_UI(Simulation_2D):
             self.flow_line,
             self.queue_line,
         ]
+
+    def save_plots(self):
+        """
+        Save all plots to files in the data directory.
+        """
+        # Create a new figure for saving
+        save_fig = plt.Figure(figsize=(12, 12))
+
+        # Density plot
+        ax1 = save_fig.add_subplot(411)
+        ax1.plot(self.step_data, self.road_density_data, "b-", label="Road")
+        ax1.plot(
+            self.step_data, self.intersection_density_data, "r-", label="Intersection"
+        )
+        ax1.set_xlabel("Steps")
+        ax1.set_ylabel("Density (%)")
+        ax1.grid(True)
+        ax1.legend()
+
+        # Velocity plot
+        ax2 = save_fig.add_subplot(412)
+        ax2.plot(self.step_data, self.velocity_data, "g-", label="Velocity")
+        ax2.set_xlabel("Steps")
+        ax2.set_ylabel("Average Velocity")
+        ax2.grid(True)
+        ax2.legend()
+
+        # Traffic flow plot
+        ax3 = save_fig.add_subplot(413)
+        ax3.plot(self.step_data, self.flow_data, "m-", label="Flow")
+        ax3.set_xlabel("Steps")
+        ax3.set_ylabel("Traffic Flow")
+        ax3.grid(True)
+        ax3.legend()
+
+        # Queue plot
+        ax4 = save_fig.add_subplot(414)
+        ax4.plot(self.step_data, self.queue_data, "c-", label="Queue")
+        ax4.set_xlabel("Steps")
+        ax4.set_ylabel("Queue Length")
+        ax4.grid(True)
+        ax4.legend()
+
+        save_fig.tight_layout()
+        save_fig.savefig("data/metrics_plots.png")
+
+        # Save the grid state
+        grid_fig = plt.Figure(figsize=(8, 8))
+        ax_grid = grid_fig.add_subplot(111)
+        ax_grid.imshow(self.grid.grid, cmap="Greys" if self.colour_blind else "rainbow")
+        ax_grid.set_title(f"Final Grid State\nTotal Cars: {len(self.grid.cars)}")
+        grid_fig.savefig("data/final_grid_state.png")
 
     def write_header(self):
         """

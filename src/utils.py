@@ -14,6 +14,13 @@ INTERSECTION_EXIT = 6
 CAR_HEAD = 7
 CAR_BODY = 10
 
+CAR_DIRECTION = {
+    1: "⬇️",
+    2: "⬆️",
+    3: "⬅️",
+    4: "➡️",
+}
+
 # Rotary flags
 STAY_ON_ROTARY = 0
 EXIT_ROTARY = 1
