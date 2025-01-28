@@ -96,7 +96,7 @@ conda install --file requirements.txt
 - Car Behavior: Tests car movement, intersection handling, and rotary navigation.
 - Collission and Interaction: Checks if cars correctly detect other vehicles in front or at intersections.
 
-To run all tests, make sure that the imports are changed in Car.py and Grid.py from "src.utils" to "utils" for all imports:
+To run all tests, make sure that the imports are changed in Car.py and Grid.py from "src.utils" to "utils" for all imports and then execute:
 ```zsh
 pytest test_simulation.py
 ```
