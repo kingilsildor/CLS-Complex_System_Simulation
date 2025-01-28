@@ -6,6 +6,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from src.car import Car
+from src.density import DensityTracker
 from src.grid import Grid
 from src.utils import ROAD_CELLS
 
@@ -239,22 +240,73 @@ class Simulation_2D(Simulation):
         """
         Start the simulation by creating cars and updating the grid at each step.
         """
+        density_tracter = DensityTracker(self.grid)
+
+        # Init cars
         cars = self.create_cars(
             self.grid, self.car_count, self.car_percentage_max_speed
         )
         self.grid.add_cars(cars)
 
+        # Init grid states
         self.grid_states = np.zeros(
             (self.max_iter, self.grid_size, self.grid_size), dtype=int
         )
+
+        # Init data collection
+        total_velocity = 0
+        total_road_density = 0
+        total_intersection_density = 0
+
+        # Init metrics
+        grid_size = self.grid.size
+        car_count = self.car_count
+        steps = self.max_iter
+
+        print("\033[1;36m=== Traffic Simulation ===")
+        print(
+            f"Grid: {grid_size}x{grid_size} | Cars: {car_count} | Steps: {steps}\033[0m\n"
+        )
+
         for step in range(self.max_iter):
-            self.grid.update_movement()
+            moved_cars = self.grid.update_movement()
+            metrics = density_tracter.update(moved_cars)
+
+            total_velocity += metrics["average_velocity"]
+            total_road_density += metrics["road_density"]
+            total_intersection_density += metrics["intersection_density"]
+
+            print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
+            print(
+                f"\033[1;32mSystem: {metrics['global_density'] * 100:4.1f}%\033[0m",
+                end=" ",
+            )
+            print(
+                f"\033[1;34mRoads: {metrics['road_density'] * 100:4.1f}%\033[0m",
+                end=" ",
+            )
+            print(
+                f"\033[1;35mInter: {metrics['intersection_density'] * 100:4.1f}%\033[0m",
+                end=" ",
+            )
+            print(f"\033[1;36mCars: {metrics['total_cars']:3d}\033[0m")
 
             new_grid = self.grid.grid.copy()
             assert isinstance(new_grid, np.ndarray)
             self.grid_states[step] = new_grid
+            print("-------------------")
+
+    def data_write(self):
+        pass
 
     def get_grid_states(self):
+        """
+        Get the grid states at each step of the simulation.
+
+        Returns:
+        --------
+        - np.ndarray: The grid states at each step of the simulation.
+        """
         return self.grid_states
 
 
