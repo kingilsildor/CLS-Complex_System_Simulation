@@ -1,9 +1,10 @@
 import tkinter as tk
-from src.simulation import SimulationUI
+
 from src.experiment import run_speed_experiment
+from src.simulation import SimulationUI
 
 if __name__ == "__main__":
-    experiment = True
+    experiment = False
     show_ui = True
 
     if experiment:
