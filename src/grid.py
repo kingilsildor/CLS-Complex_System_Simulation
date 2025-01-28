@@ -65,6 +65,7 @@ class Grid:
         self.create_vertical_lanes()
         self.create_horizontal_lanes()
         self.create_intersections()
+        # self.create_edge_lanes()
 
     def create_edge_lanes(self):
         """
