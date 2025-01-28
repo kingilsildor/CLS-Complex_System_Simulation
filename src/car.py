@@ -1,6 +1,8 @@
 import numpy as np
 
-from src.grid import Grid
+# from src.grid import Grid
+from grid import Grid
+
 from src.utils import (
     CAR_BODY,
     CAR_HEAD,
@@ -57,6 +59,8 @@ class Car:
         - x (int): The new x position of the car.
         - y (int): The new y position of the car.
         """
+        # print(f"get_boundary_pos called with x={x}, y={y}")
+
         grid_boundary = self.grid.size
 
         x = x % grid_boundary
@@ -99,14 +103,15 @@ class Car:
 
         # Get the diagonal cell
         if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-            possible_pos = self.get_boundary_pos(infront_x, infront_y + 1)
-        elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
             possible_pos = self.get_boundary_pos(infront_x, infront_y - 1)
+        elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            possible_pos = self.get_boundary_pos(infront_x, infront_y + 1)
         elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
-            possible_pos = self.get_boundary_pos(infront_x + 1, infront_y)
-        elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
             possible_pos = self.get_boundary_pos(infront_x - 1, infront_y)
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+            possible_pos = self.get_boundary_pos(infront_x + 1, infront_y)
 
+        # print(f"Possible position in return diagonal: {possible_pos}")
         possible_cell = self.grid.grid[possible_pos]
         assert isinstance(possible_cell, np.int64)
         return possible_cell
