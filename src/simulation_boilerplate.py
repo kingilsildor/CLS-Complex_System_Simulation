@@ -285,31 +285,9 @@ class Simulation_1D(Simulation):
 
         plot_canvas.bind_all("<MouseWheel>", on_mouse_wheel)
 
-        # Simulation parameters
-        length = tk.IntVar(value=100)
-        num_cars = tk.IntVar(value=10)
-        max_speed = tk.IntVar(value=10)
-        time_steps = tk.IntVar(value=100)
-        randomization = tk.BooleanVar(value=True)
-
+        self.randomization = tk.BooleanVar(value=True)
         # Create sliders for adjusting parameters
-        tk.Label(control_frame, text="Length of the road").pack()
-        tk.Scale(
-            control_frame, from_=10, to=200, orient=tk.HORIZONTAL, variable=length
-        ).pack()
-        tk.Label(control_frame, text="Number of cars").pack()
-        tk.Scale(
-            control_frame, from_=1, to=200, orient=tk.HORIZONTAL, variable=num_cars
-        ).pack()
-        tk.Label(control_frame, text="Maximum speed of cars").pack()
-        tk.Scale(
-            control_frame, from_=1, to=5, orient=tk.HORIZONTAL, variable=max_speed
-        ).pack()
-        tk.Label(control_frame, text="Number of time steps").pack()
-        tk.Scale(
-            control_frame, from_=10, to=500, orient=tk.HORIZONTAL, variable=time_steps
-        ).pack()
-
+        self.init_sliders(control_frame)
         # Set up the scrollable text widget for displaying the simulation
         text_widget = scrolledtext.ScrolledText(
             output_frame, font=("Courier", 12), wrap=tk.NONE
@@ -337,7 +315,7 @@ class Simulation_1D(Simulation):
         fig1, ax1 = plt.subplots()
         (line1,) = ax1.plot([], [], "bo")
         ax1.set_xlim(0, 1)
-        ax1.set_ylim(0, max_speed.get())
+        ax1.set_ylim(0, self.max_speed_slider.get())
         ax1.set_xlabel("Density (cars per cell)")
         ax1.set_ylabel("Average Speed (cells per time step)")
         ax1.set_title("Density vs. Average Speed")
@@ -354,14 +332,18 @@ class Simulation_1D(Simulation):
             return (line1,)
 
         ani1 = FuncAnimation(
-            fig1, update_plot1, init_func=init1, blit=True, frames=time_steps.get()
+            fig1,
+            update_plot1,
+            init_func=init1,
+            blit=True,
+            frames=self.time_steps_slider.get(),
         )
 
         # Set up the matplotlib figure and axis for density vs flow plot
         fig2, ax2 = plt.subplots()
         (line2,) = ax2.plot([], [], "ro")
         ax2.set_xlim(0, 1)
-        ax2.set_ylim(0, max_speed.get())
+        ax2.set_ylim(0, self.max_speed_slider.get())
         ax2.set_xlabel("Density (cars per cell)")
         ax2.set_ylabel("Flow (cars per time step)")
         ax2.set_title("Density vs. Flow")
@@ -378,13 +360,17 @@ class Simulation_1D(Simulation):
             return (line2,)
 
         ani2 = FuncAnimation(
-            fig2, update_plot2, init_func=init2, blit=True, frames=time_steps.get()
+            fig2,
+            update_plot2,
+            init_func=init2,
+            blit=True,
+            frames=self.time_steps_slider.get(),
         )
 
         # Set up the matplotlib figure and axis for time-space diagram
         fig3, ax3 = plt.subplots()
-        ax3.set_xlim(0, length.get())
-        ax3.set_ylim(time_steps.get(), 0)
+        ax3.set_xlim(0, self.road_length_slider.get())
+        ax3.set_ylim(self.time_steps_slider.get(), 0)
         ax3.set_xlabel("Position")
         ax3.set_ylabel("Time")
         ax3.set_title("Time-Space Diagram")
@@ -399,14 +385,6 @@ class Simulation_1D(Simulation):
             line3.set_data([], [])
             return (line3,)
 
-        # def init3():
-        # ax3.set_xlim(0, length.get())
-        # ax3.set_ylim(time_steps.get(), 0)  # Flip the y-axis
-        # ax3.set_xlabel("Position")
-        # ax3.set_ylabel("Time")
-        # ax3.set_title("Time-Space Diagram")
-        # return ax3,
-
         def update_plot3(frame):
             x_data = []
             y_data = []
@@ -416,11 +394,12 @@ class Simulation_1D(Simulation):
             line3.set_data(x_data, y_data)
             return (line3,)
 
-            # ax3.scatter(positions, [t] * len(positions), c='black', s=1)
-            # return ax3,
-
         ani3 = FuncAnimation(
-            fig3, update_plot3, init_func=init3, blit=True, frames=time_steps.get()
+            fig3,
+            update_plot3,
+            init_func=init3,
+            blit=True,
+            frames=self.time_steps_slider.get(),
         )
 
         def save_plots():
@@ -440,7 +419,7 @@ class Simulation_1D(Simulation):
                 messagebox.showinfo("Save Plots", "Plots saved successfully!")
 
         def start_simulation():
-            if num_cars.get() > length.get():
+            if self.car_count_slider.get() > self.road_length_slider.get():
                 messagebox.showerror(
                     "Parameter Error",
                     "Number of cars cannot be greater than the length of the road",
@@ -459,23 +438,22 @@ class Simulation_1D(Simulation):
             step_counter[0] = 0
             output_lines.clear()
             text_widget.delete(1.0, tk.END)
-            # speed_data.clear()
-            # density_data.clear()
-            # flow_data.clear()
             time_space_data.clear()
             initialize_model()
 
         def update_simulation():
-            if running[0] and step_counter[0] < time_steps.get():
+            if running[0] and step_counter[0] < self.time_steps_slider.get():
                 model.update()
                 output_lines.append(model.visualize())
                 text_widget.insert(tk.END, model.visualize() + "\n")
                 text_widget.see(tk.END)  # Scroll to the end
-                avg_speed = model.total_speed / num_cars.get()  # Average speed of cars
+                avg_speed = (
+                    model.total_speed / self.car_count_slider.get()
+                )  # Average speed of cars
                 speed_data.append(avg_speed)
-                density = num_cars.get() / length.get()
+                density = self.car_count_slider.get() / self.road_length_slider.get()
                 density_data.append(density)  # Collect density data
-                flow = model.flow / length.get()  # Calculate flow
+                flow = model.flow / self.road_length_slider.get()  # Calculate flow
                 flow_data.append(flow)  # Collect flow data
                 positions = [i for i, x in enumerate(model.road) if x == 1]
                 time_space_data.append(positions)  # Collect time-space data
@@ -487,9 +465,13 @@ class Simulation_1D(Simulation):
         def initialize_model():
             nonlocal model
             print(
-                f"Initializing model with length={length.get()}, num_cars={num_cars.get()}, max_speed={max_speed.get()}"
+                f"Initializing model with length={self.road_length_slider.get()}, num_cars={self.car_count_slider.get()}, max_speed={self.max_speed_slider.get()}"
             )
-            model = NagelSchreckenberg(length.get(), num_cars.get(), max_speed.get())
+            model = NagelSchreckenberg(
+                self.road_length_slider.get(),
+                self.car_count_slider.get(),
+                self.max_speed_slider.get(),
+            )
 
         def on_closing():
             stop_simulation()
@@ -500,8 +482,8 @@ class Simulation_1D(Simulation):
             root.destroy()
 
         def disable_random():
-            randomization.set(not randomization.get())
-            print(f"Randomization set to {randomization.get()}")
+            self.randomization.set(not self.randomization.get())
+            print(f"Randomization set to {self.randomization.get()}")
 
         def plot_density_vs_speed():
             plt.show()
@@ -516,8 +498,8 @@ class Simulation_1D(Simulation):
         randomization_checkbutton = tk.Checkbutton(
             control_frame,
             text="Randomization",
-            variable=randomization,
-            command=lambda: print(f"Randomization set to {randomization.get()}"),
+            variable=self.randomization,
+            command=lambda: print(f"Randomization set to {self.randomization.get()}"),
         )
         randomization_checkbutton.pack(pady=5)
 
@@ -527,6 +509,72 @@ class Simulation_1D(Simulation):
         # Handle window close event
         root.protocol("WM_DELETE_WINDOW", on_closing)
         root.mainloop()
+
+    def init_sliders(self, control_frame: tk.Frame):
+        """ "
+        Create sliders for adjusting the simulation parameters.
+
+        Params:
+        -------
+        - control_frame (tk.Frame): The frame in which the sliders will be placed.
+        """
+        self.road_length_slider = tk.IntVar(value=100)
+        assert isinstance(self.road_length_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Length of the Road",
+            min_val=10,
+            max_val=200,
+            variable=self.road_length_slider,
+        )
+
+        self.car_count_slider = tk.IntVar(value=10)
+        assert isinstance(self.car_count_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Number of Cars",
+            min_val=1,
+            max_val=200,
+            variable=self.car_count_slider,
+        )
+
+        self.max_speed_slider = tk.IntVar(value=10)
+        assert isinstance(self.max_speed_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Maximum Speed of Cars",
+            min_val=1,
+            max_val=5,
+            variable=self.max_speed_slider,
+        )
+
+        self.time_steps_slider = tk.IntVar(value=100)
+        assert isinstance(self.time_steps_slider, tk.IntVar)
+        self.create_slider(
+            control_frame,
+            label="Number of Time Steps",
+            min_val=10,
+            max_val=200,
+            variable=self.time_steps_slider,
+        )
+
+    def init_buttons(self, control_frame: tk.Frame):
+        """
+        Create buttons for starting, stopping, and resetting the simulation.
+
+        Params:
+        -------
+        - control_frame (tk.Frame): The frame in which the buttons will be placed.
+        """
+        self.create_button(control_frame, text="Start", command=self.start_simulation)
+        self.create_button(control_frame, text="Pause", command=self.pause_simulation)
+        self.create_button(control_frame, text="Stop", command=self.stop_simulation)
+        self.create_button(
+            control_frame, text="Restart", command=self.restart_simulation
+        )
+        self.create_button(control_frame, text="Update", command=self.update_simulation)
+        self.create_button(control_frame, text="Save", command=self.save_simulation)
+        self.create_button(control_frame, text="Close", command=self.close_simulation)
 
 
 class Simulation_2D(Simulation):
