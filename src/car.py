@@ -2,7 +2,6 @@ import numpy as np
 
 # from src.grid import Grid
 from src.grid import Grid
-
 from src.utils import (
     CAR_HEAD,
     EXIT_ROTARY,
@@ -19,7 +18,9 @@ from src.utils import (
 
 
 class Car:
-    def __init__(self, grid: Grid, position: tuple, follow_limit: bool = False):
+    def __init__(
+        self, grid: Grid, position: tuple, free_rotary: True, follow_limit: bool = False
+    ):
         assert isinstance(grid, Grid)
 
         self.grid = grid
@@ -33,6 +34,8 @@ class Car:
         self.road_type = road_type
         self.grid.grid[position] = CAR_HEAD
         self.on_rotary = True if road_type in INTERSECTION_CELLS else False
+
+        self.free_rotary = free_rotary
 
         self.head_position = position
         self.flag = STAY_ON_ROTARY
@@ -261,6 +264,8 @@ class Car:
 
         # Move the car according to the road type and get success status
         success = False
+        # if free_rotary == True:
+
         if self.on_rotary and self.flag == EXIT_ROTARY:
             success = _exit_rotary()
         elif self.on_rotary:
