@@ -6,8 +6,8 @@ import numpy as np
 from src.grid import Grid
 from src.utils import (
     CAR_HEAD,
-    EXIT_ROTARY,
     FIXED_DESTINATION,
+    FREE_MOVEMENT,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_CELLS,
@@ -20,7 +20,13 @@ from src.utils import (
 
 
 class Car:
-    def __init__(self, grid: Grid, position: tuple, follow_limit: bool = False):
+    def __init__(
+        self,
+        grid: Grid,
+        position: tuple,
+        free_rotary_method: bool = True,
+        follow_limit: bool = False,
+    ):
         assert isinstance(grid, Grid)
 
         self.grid = grid
@@ -35,8 +41,16 @@ class Car:
         self.grid.grid[position] = CAR_HEAD
         self.on_rotary = True if road_type in INTERSECTION_CELLS else False
 
+        # Means that the car will exit if it can, and move to the next available position otherwise.
+        self.free_rotary_method = free_rotary_method
+
         self.head_position = position
-        self.flag = FIXED_DESTINATION
+        self.flag = None
+        if free_rotary_method:
+            self.flag = FREE_MOVEMENT
+        else:
+            self.flag = FIXED_DESTINATION
+        assert self.flag in [FREE_MOVEMENT, FIXED_DESTINATION]
         self.road_destination = None
 
         # Setup speed
@@ -49,19 +63,6 @@ class Car:
             random_speed = np.random.randint(MIN_SPEED, MAX_SPEED + 1)
             assert MIN_SPEED <= random_speed <= MAX_SPEED
             self.max_speed = random_speed
-
-    def flag_func(self):
-        """
-        Function to change the car flag
-
-        Returns:
-        --------
-        - flag (int): The new flag of the car.
-        """
-        if np.random.uniform() < 0.2:
-            return EXIT_ROTARY
-        else:
-            return FIXED_DESTINATION
 
     def get_boundary_pos(self, x: int, y: int) -> tuple:
         """
@@ -284,6 +285,10 @@ class Car:
             if possible_cell == CAR_HEAD:
                 return False
 
+            if self.flag == FIXED_DESTINATION:
+                if possible_cell != self.road_destination:
+                    return False
+
             if possible_cell not in INTERSECTION_CELLS:
                 self.set_car_rotary(False)
 
@@ -296,6 +301,10 @@ class Car:
 
         if self.on_rotary:
             if self.flag == FIXED_DESTINATION:
+                success = _exit_rotary()
+                if not success:
+                    success = _move_rotary()
+            elif self.flag == FREE_MOVEMENT:
                 success = _exit_rotary()
                 if not success:
                     success = _move_rotary()
