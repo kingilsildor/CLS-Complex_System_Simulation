@@ -21,7 +21,9 @@ class Grid:
     Cars can be added to the grid and their movements updated dynamically.
     """
 
-    def __init__(self, grid_size: int, blocks_size: int, max_speed: int = 2):
+    def __init__(
+        self, grid_size: int, blocks_size: int, rotary_method: int, max_speed: int = 2
+    ):
         """
         Initialize the grid with a given size, block size, and lane width.
 
@@ -29,6 +31,7 @@ class Grid:
         -------
         - grid_size (int): The size of the grid (NxN).
         - blocks_size (int): The size of blocks between roads.
+        - rotary_method (int): The method used to handle rotaries.
         - max_speed (int): The maximum speed of cars on the grid.
         """
         self.grid = np.full((grid_size, grid_size), BLOCKS_VALUE, dtype=int)
@@ -37,6 +40,7 @@ class Grid:
         )  # Track original cell types
         self.size = grid_size
         self.blocks = blocks_size
+        self.rotary_method = rotary_method
         self.lane_width = 2
 
         self.cars = []
