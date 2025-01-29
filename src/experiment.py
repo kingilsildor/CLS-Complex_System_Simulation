@@ -3,15 +3,16 @@ from tqdm import tqdm
 import multiprocessing as mp
 from itertools import product
 from scipy import stats
-
-from src.simulation import Simulation_2D_NoUI
-from src.grid import Grid
-from src.density import DensityTracker
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import time
 import os
+
+from src.simulation import Simulation_2D_NoUI
+from src.grid import Grid
+from src.density import DensityTracker
+from src.utils import FREE_MOVEMENT, FIXED_DESTINATION
 
 
 def get_experiment_config():
@@ -21,13 +22,14 @@ def get_experiment_config():
     """
     config = {
         # Global parameters
-        "n_simulations": 2,  # Number of simulations per parameter combination
+        "n_simulations": 5,  # Number of simulations per parameter combination
         "steps": 200,  # Steps per simulation
         "lane_width": 2,
         "warmup_fraction": 0.2,  # Fraction of steps to use as warmup
         "log_scale": True,  # Whether to create log-log plots in addition to normal plots
+        "rotary_method": FIXED_DESTINATION,  # FREE_MOVEMENT or FIXED_DESTINATION
         "density_start": 5,  # Starting density percentage
-        "density_end": 100,  # Ending density percentage
+        "density_end": 95,  # Ending density percentage
         "density_step": 5,  # Step size for density
         # Which experiments to run
         "run_road_length": True,
@@ -35,7 +37,7 @@ def get_experiment_config():
         "run_max_speed": False,
         # Road length experiment parameters
         "road_length": {
-            "road_lengths": [64, 128],
+            "road_lengths": [32, 64, 128],
         },
         # Speed compliance experiment parameters
         "speed_compliance": {
@@ -72,6 +74,7 @@ def run_all_experiments():
             warmup_fraction=config["warmup_fraction"],
             lane_width=config["lane_width"],
             log_scale=config["log_scale"],
+            rotary_method=config["rotary_method"],
             **config["road_length"],
         )
 
@@ -83,6 +86,7 @@ def run_all_experiments():
             warmup_fraction=config["warmup_fraction"],
             lane_width=config["lane_width"],
             log_scale=config["log_scale"],
+            rotary_method=config["rotary_method"],
             **config["speed_compliance"],
         )
 
@@ -94,6 +98,7 @@ def run_all_experiments():
             warmup_fraction=config["warmup_fraction"],
             lane_width=config["lane_width"],
             log_scale=config["log_scale"],
+            rotary_method=config["rotary_method"],
             **config["max_speed"],
         )
 
@@ -121,7 +126,9 @@ def calculate_grid_size(road_length):
 def run_single_simulation_generic(params, experiment_type="road_length"):
     """Generic simulation runner for all experiment types."""
     if experiment_type == "road_length":
-        road_length, density_percentage, steps, lane_width, sim_index = params
+        road_length, density_percentage, steps, lane_width, rotary_method, sim_index = (
+            params
+        )
         max_speed = 2
         speed_percentage = 100
     elif experiment_type == "speed_compliance":
@@ -131,11 +138,14 @@ def run_single_simulation_generic(params, experiment_type="road_length"):
             steps,
             road_length,
             lane_width,
+            rotary_method,
             sim_index,
         ) = params
         max_speed = 5  # Fixed max speed for speed compliance experiment
     elif experiment_type == "max_speed":
-        max_speed, density_percentage, steps, road_length, sim_index = params
+        max_speed, density_percentage, steps, road_length, rotary_method, sim_index = (
+            params
+        )
         speed_percentage = (
             100  # In max speed experiment, all cars should follow their speed limit
         )
@@ -146,7 +156,7 @@ def run_single_simulation_generic(params, experiment_type="road_length"):
     grid_size = calculate_grid_size(road_length)
 
     # Calculate car count
-    temp_grid = Grid(grid_size, road_length, max_speed)  # Pass max_speed to Grid
+    temp_grid = Grid(grid_size, road_length, max_speed)
     total_cells = temp_grid.road_cells + temp_grid.intersection_cells
     density = density_percentage / 100.0
     car_count = int(total_cells * density)
@@ -155,12 +165,13 @@ def run_single_simulation_generic(params, experiment_type="road_length"):
     ui = Simulation_2D_NoUI(
         root=None,
         max_iter=steps,
+        rotary_method=rotary_method,  # Pass the rotary method
         grid_size=grid_size,
         road_length=road_length,
         road_max_speed=max_speed,
         car_count=car_count,
-        car_percentage_max_speed=speed_percentage,  # Use the correct speed percentage
-        seed=42 + sim_index,  # Re-enable seeding for reproducibility
+        car_percentage_max_speed=speed_percentage,
+        seed=42 + sim_index,
     )
 
     # Create density tracker and collect metrics
@@ -362,7 +373,11 @@ def save_results_generic(results, variable_values, experiment_type="road_length"
 
 
 def create_analysis_plots_generic(
-    results, variable_values, experiment_type="road_length", log_scale=False
+    results,
+    variable_values,
+    experiment_type="road_length",
+    log_scale=False,
+    rotary_method=FREE_MOVEMENT,
 ):
     """
     Generic function to create analysis plots for all experiment types.
@@ -377,6 +392,8 @@ def create_analysis_plots_generic(
         The type of experiment (road_length, speed_compliance, or max_speed)
     log_scale : bool
         Whether to create an additional plot with log-log axes
+    rotary_method : int
+        The rotary method used (FREE_MOVEMENT or FIXED_DESTINATION)
     """
     # Get timestamp in ddmmhhmm format
     timestamp = time.strftime("%d%m%H%M")
@@ -396,6 +413,14 @@ def create_analysis_plots_generic(
         title = "Effect of Maximum Speed Limit on Speed vs Density"
     else:
         raise ValueError(f"Unknown experiment type: {experiment_type}")
+
+    # Create rotary method label
+    rotary_label = (
+        "Free Movement" if rotary_method == FREE_MOVEMENT else "Fixed Destination"
+    )
+
+    # Create directory if it doesn't exist
+    os.makedirs(base_path, exist_ok=True)
 
     # Create both normal and log-scale plots
     plot_types = ["normal"]
@@ -429,10 +454,10 @@ def create_analysis_plots_generic(
         if plot_type == "log":
             plt.xscale("log")
             plt.yscale("log")
-            plot_title = f"{title}\n(Log-Log Scale, with 95% Confidence Intervals, after 20% warmup)"
+            plot_title = f"{title}\n(Log-Log Scale, with 95% Confidence Intervals, after 20% warmup)\nRotary Method: {rotary_label}"
             filename = f"{base_path}/density_analysis_loglog_{timestamp}.png"
         else:
-            plot_title = f"{title}\n(with 95% Confidence Intervals, after 20% warmup)"
+            plot_title = f"{title}\n(with 95% Confidence Intervals, after 20% warmup)\nRotary Method: {rotary_label}"
             filename = f"{base_path}/density_analysis_{timestamp}.png"
 
         plt.title(plot_title)
@@ -466,7 +491,14 @@ def run_experiment_generic(
             for sim_index in range(n_simulations):
                 params.append(
                     (
-                        (road_length, density, steps, kwargs["lane_width"], sim_index),
+                        (
+                            road_length,
+                            density,
+                            steps,
+                            kwargs["lane_width"],
+                            kwargs["rotary_method"],
+                            sim_index,
+                        ),
                         experiment_type,
                     )
                 )
@@ -482,6 +514,7 @@ def run_experiment_generic(
                             steps,
                             kwargs["road_length"],
                             kwargs["lane_width"],
+                            kwargs["rotary_method"],
                             sim_index,
                         ),
                         experiment_type,
@@ -493,7 +526,14 @@ def run_experiment_generic(
             for sim_index in range(n_simulations):
                 params.append(
                     (
-                        (speed, density, steps, kwargs["road_length"], sim_index),
+                        (
+                            speed,
+                            density,
+                            steps,
+                            kwargs["road_length"],
+                            kwargs["rotary_method"],
+                            sim_index,
+                        ),
                         experiment_type,
                     )
                 )
@@ -523,7 +563,11 @@ def run_experiment_generic(
     # Save results and create plots
     formatted_results = save_results_generic(results, variable_values, experiment_type)
     create_analysis_plots_generic(
-        formatted_results, variable_values, experiment_type, log_scale=log_scale
+        formatted_results,
+        variable_values,
+        experiment_type,
+        log_scale=log_scale,
+        rotary_method=kwargs["rotary_method"],
     )
 
 
@@ -535,6 +579,7 @@ def run_experiment(
     road_lengths,
     densities,
     log_scale=False,
+    rotary_method=FREE_MOVEMENT,
 ):
     """Run the road length experiment."""
     run_experiment_generic(
@@ -546,6 +591,7 @@ def run_experiment(
         road_lengths=road_lengths,
         densities=densities,
         log_scale=log_scale,
+        rotary_method=rotary_method,
     )
 
 
@@ -558,6 +604,7 @@ def run_speed_experiment(
     speed_percentages,
     densities,
     log_scale=False,
+    rotary_method=FREE_MOVEMENT,
 ):
     """Run the speed compliance experiment."""
     run_experiment_generic(
@@ -570,6 +617,7 @@ def run_speed_experiment(
         speed_percentages=speed_percentages,
         densities=densities,
         log_scale=log_scale,
+        rotary_method=rotary_method,
     )
 
 
@@ -582,6 +630,7 @@ def run_maxspeed_experiment(
     max_speeds,
     densities,
     log_scale=False,
+    rotary_method=FREE_MOVEMENT,
 ):
     """Run the maximum speed experiment."""
     run_experiment_generic(
@@ -594,4 +643,5 @@ def run_maxspeed_experiment(
         max_speeds=max_speeds,
         densities=densities,
         log_scale=log_scale,
+        rotary_method=rotary_method,
     )
