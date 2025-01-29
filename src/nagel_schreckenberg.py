@@ -2,7 +2,23 @@ import random
 
 
 class NagelSchreckenberg:
-    def __init__(self, road_length, num_cars, max_speed, randomization=True):
+    def __init__(
+        self,
+        road_length: int,
+        num_cars: int,
+        max_speed: int,
+        randomization: bool = True,
+    ):
+        """
+        Initialize the Nagel-Schreckenberg model based on Wolfram rule 184.
+
+        Params:
+        -------
+        - road_length (int): Length of the road.
+        - num_cars (int): Number of cars on the road.
+        - max_speed (int): Maximum speed of the cars.
+        - randomization (bool): Whether to include randomization in the model.
+        """
         self.road_length = road_length
         self.num_cars = num_cars
         self.max_speed = max_speed
@@ -31,7 +47,7 @@ class NagelSchreckenberg:
 
     def initialize(self):
         """
-        Initialize the road with cars at random positions
+        Initialize the road with cars at random positions.
         """
         self.road = [0] * self.road_length
         positions = random.sample(range(self.road_length), self.num_cars)
@@ -40,7 +56,7 @@ class NagelSchreckenberg:
 
     def update(self):
         """
-        Update the road based on the Nagel-Schreckenberg model
+        Update the road based on the Nagel-Schreckenberg model.
         """
         new_road = [0] * self.road_length
         new_speeds = [0] * self.num_cars
@@ -72,7 +88,11 @@ class NagelSchreckenberg:
 
     def distance_to_next_car(self, index):
         """
-        Calculate the distance to the next car in front of the current car
+        Calculate the distance to the next car in front of the current car.
+
+        Params:
+        -------
+        - index (int): Index of the current car.
         """
         distance = 1
         while distance < self.road_length:
@@ -84,6 +104,6 @@ class NagelSchreckenberg:
 
     def visualize(self):
         """
-        Visualize the road with cars as blocks and empty
+        Visualize the road with cars as blocks and empty.
         """
         return "".join(["██" if x == 1 else "\u00a0\u00a0" for x in self.road])
