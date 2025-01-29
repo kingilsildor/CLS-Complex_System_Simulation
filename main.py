@@ -5,6 +5,7 @@ from src.simulation import (
     Simulation_2D_NoUI,
     Simulation_2D_UI,
 )
+from src.utils import FIXED_DESTINATION, FREE_MOVEMENT
 
 
 def run_2D_NoUI_simulation():
@@ -12,6 +13,7 @@ def run_2D_NoUI_simulation():
     sim = Simulation_2D_NoUI(
         root,
         max_iter=100,
+        rotary_method=FREE_MOVEMENT,
         grid_size=15,
         road_length=10,
         road_max_speed=2,
@@ -32,7 +34,7 @@ def run_1D_simulation():
 
 def run_2D_UI_simulation():
     root = tk.Tk()
-    sim = Simulation_2D_UI(root)
+    sim = Simulation_2D_UI(root, FIXED_DESTINATION)
     sim.start_simulation()
     root.mainloop()
 

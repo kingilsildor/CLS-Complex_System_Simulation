@@ -6,11 +6,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 from src.car import Car
 from src.density import DensityTracker
 from src.grid import Grid
 from src.nagel_schreckenberg import NagelSchreckenberg
-from src.utils import CAR_DIRECTION, FILE_EXTENSION, MAX_SPEED, MIN_SPEED, ROAD_CELLS
+from src.utils import (
+    CAR_DIRECTION,
+    FILE_EXTENSION,
+    MAX_SPEED,
+    MIN_SPEED,
+    ROAD_CELLS,
+)
 
 
 class Simulation(ABC):
@@ -587,8 +594,9 @@ class Simulation_1D(Simulation):
 
 
 class Simulation_2D(Simulation, ABC):
-    def __init__(self, root, seed=42):
+    def __init__(self, root: tk.Tk, rotary_method: int, seed: int = 42):
         super().__init__(root, seed)
+        self.rotary_method = rotary_method
 
     def create_cars(
         self, grid: Grid, car_count: int, car_percentage_max_speed: int
@@ -642,6 +650,7 @@ class Simulation_2D_NoUI(Simulation_2D):
         self,
         root: tk.Tk,
         max_iter: int,
+        rotary_method: int,
         grid_size: int,
         road_length: int,
         road_max_speed: int,
@@ -649,8 +658,12 @@ class Simulation_2D_NoUI(Simulation_2D):
         car_percentage_max_speed: int,
         seed: int = 42,
     ):
-        super().__init__(root, seed)
-        self.grid = Grid(grid_size, road_length)
+        super().__init__(root, rotary_method=rotary_method, seed=seed)
+        self.grid = Grid(
+            grid_size=grid_size,
+            blocks_size=road_length,
+            rotary_method=self.rotary_method,
+        )
         self.max_iter = max_iter
         self.grid_size = grid_size
         self.road_length = road_length
@@ -742,9 +755,14 @@ class Simulation_2D_NoUI(Simulation_2D):
 
 
 class Simulation_2D_UI(Simulation_2D):
-    def __init__(self, root, seed=42, colour_blind=False):
-        super().__init__(root, seed)
-
+    def __init__(
+        self,
+        root: tk.Tk,
+        rotary_method: int,
+        seed: int = 42,
+        colour_blind: bool = False,
+    ):
+        super().__init__(root, rotary_method=rotary_method, seed=seed)
         self.root.title("Car Traffic in a 2D street network.")
 
         self.control_frame = tk.Frame(self.root)
@@ -1023,7 +1041,12 @@ class Simulation_2D_UI(Simulation_2D):
         """
         Initialize the grid with the given parameters.
         """
-        return Grid(grid_size=grid_size, blocks_size=blocks_size, max_speed=max_speed)
+        return Grid(
+            grid_size=grid_size,
+            blocks_size=blocks_size,
+            rotary_method=self.rotary_method,
+            max_speed=max_speed,
+        )
 
     def start_simulation(self):
         self.restart_simulation_if_needed()
@@ -1043,6 +1066,7 @@ class Simulation_2D_UI(Simulation_2D):
         self.grid = Grid(
             grid_size=grid_size,
             blocks_size=blocks_size,
+            rotary_method=self.rotary_method,
             max_speed=max_speed,
         )
         self.density_tracker = DensityTracker(self.grid)

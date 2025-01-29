@@ -24,7 +24,6 @@ class Car:
         self,
         grid: Grid,
         position: tuple,
-        free_rotary_method: bool = True,
         follow_limit: bool = False,
     ):
         assert isinstance(grid, Grid)
@@ -42,14 +41,8 @@ class Car:
         self.on_rotary = True if road_type in INTERSECTION_CELLS else False
 
         # Means that the car will exit if it can, and move to the next available position otherwise.
-        self.free_rotary_method = free_rotary_method
-
         self.head_position = position
-        self.flag = None
-        if free_rotary_method:
-            self.flag = FREE_MOVEMENT
-        else:
-            self.flag = FIXED_DESTINATION
+        self.flag = self.grid.rotary_method
         assert self.flag in [FREE_MOVEMENT, FIXED_DESTINATION]
         self.road_destination = None
 
@@ -79,7 +72,6 @@ class Car:
         - x (int): The new x position of the car.
         - y (int): The new y position of the car.
         """
-        # print(f"get_boundary_pos called with x={x}, y={y}")
 
         grid_boundary = self.grid.size
 
@@ -132,7 +124,6 @@ class Car:
         elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
             possible_pos = self.get_boundary_pos(infront_x + 1, infront_y)
 
-        # print(f"Possible position in return diagonal: {possible_pos}")
         possible_cell = self.grid.grid[possible_pos]
         assert isinstance(possible_cell, np.int64)
         return possible_cell
@@ -257,11 +248,6 @@ class Car:
 
             if possible_cell == CAR_HEAD:
                 return False
-            if (
-                possible_cell != self.road_destination
-                and self.flag == FIXED_DESTINATION
-            ):
-                return False
             if possible_cell in ROAD_CELLS or possible_cell in INTERSECTION_CELLS:
                 self.set_car_location(possible_pos)
                 self.set_car_road_type(possible_road_type)
@@ -285,9 +271,11 @@ class Car:
             if possible_cell == CAR_HEAD:
                 return False
 
-            if self.flag == FIXED_DESTINATION:
-                if possible_cell != self.road_destination:
-                    return False
+            if (
+                self.flag == FIXED_DESTINATION
+                and possible_cell != self.road_destination
+            ):
+                return False
 
             if possible_cell not in INTERSECTION_CELLS:
                 self.set_car_rotary(False)
