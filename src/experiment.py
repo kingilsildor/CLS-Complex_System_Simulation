@@ -2,285 +2,596 @@ import numpy as np
 from tqdm import tqdm
 import multiprocessing as mp
 from itertools import product
+from scipy import stats
 
-from src.simulation import SimulationUI
+from src.simulation import Simulation_2D_NoUI
 from src.grid import Grid
 from src.density import DensityTracker
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import time
+import os
 
 
-def calculate_grid_size(blocks_size):
-    """Calculate appropriate grid size for a given block size.
-    We want enough blocks for meaningful results, but not too many to keep simulation fast.
-    Grid size is scaled more aggressively for very small block sizes.
+def get_experiment_config():
     """
-    if blocks_size <= 8:
-        # For very small blocks, use fewer blocks to keep grid size reasonable
-        n_blocks = 8
-    elif blocks_size <= 32:
-        # For small-medium blocks, use moderate number of blocks
-        n_blocks = 12
-    else:
-        # For large blocks, use fewer blocks
-        n_blocks = 8
+    Central configuration for all experiments.
+    Modify this function to control which experiments to run and their parameters.
+    """
+    config = {
+        # Global parameters
+        "n_simulations": 2,  # Number of simulations per parameter combination
+        "steps": 200,  # Steps per simulation
+        "lane_width": 2,
+        "warmup_fraction": 0.2,  # Fraction of steps to use as warmup
+        "log_scale": True,  # Whether to create log-log plots in addition to normal plots
+        "density_start": 5,  # Starting density percentage
+        "density_end": 100,  # Ending density percentage
+        "density_step": 5,  # Step size for density
+        # Which experiments to run
+        "run_road_length": True,
+        "run_speed_compliance": False,
+        "run_max_speed": False,
+        # Road length experiment parameters
+        "road_length": {
+            "road_lengths": [64, 128],
+        },
+        # Speed compliance experiment parameters
+        "speed_compliance": {
+            "road_length": 64,
+            "speed_percentages": [50, 75, 100],
+        },
+        # Maximum speed experiment parameters
+        "max_speed": {
+            "road_length": 64,
+            "max_speeds": [1, 3, 5],  # More distinct speed values
+        },
+    }
 
-    # Calculate grid size based on number of blocks
-    grid_size = blocks_size * n_blocks
+    # Add density range to all experiment configurations
+    densities = range(
+        config["density_start"], config["density_end"], config["density_step"]
+    )
+    config["road_length"]["densities"] = densities
+    config["speed_compliance"]["densities"] = densities
+    config["max_speed"]["densities"] = densities
+
+    return config
+
+
+def run_all_experiments():
+    """Run all configured experiments."""
+    config = get_experiment_config()
+
+    if config["run_road_length"]:
+        print("\n=== Running Road Length Experiment ===")
+        run_experiment(
+            n_simulations=config["n_simulations"],
+            steps=config["steps"],
+            warmup_fraction=config["warmup_fraction"],
+            lane_width=config["lane_width"],
+            log_scale=config["log_scale"],
+            **config["road_length"],
+        )
+
+    if config["run_speed_compliance"]:
+        print("\n=== Running Speed Compliance Experiment ===")
+        run_speed_experiment(
+            n_simulations=config["n_simulations"],
+            steps=config["steps"],
+            warmup_fraction=config["warmup_fraction"],
+            lane_width=config["lane_width"],
+            log_scale=config["log_scale"],
+            **config["speed_compliance"],
+        )
+
+    if config["run_max_speed"]:
+        print("\n=== Running Maximum Speed Experiment ===")
+        run_maxspeed_experiment(
+            n_simulations=config["n_simulations"],
+            steps=config["steps"],
+            warmup_fraction=config["warmup_fraction"],
+            lane_width=config["lane_width"],
+            log_scale=config["log_scale"],
+            **config["max_speed"],
+        )
+
+
+def calculate_grid_size(road_length):
+    """Calculate appropriate grid size for a given road length.
+    We want enough roads for meaningful results, but not too many to keep simulation fast.
+    Grid size is scaled more aggressively for very small road lengths.
+    """
+    if road_length <= 8:
+        # For very small roads, use fewer roads to keep grid size reasonable
+        n_roads = 8
+    elif road_length <= 32:
+        # For small-medium roads, use moderate number of roads
+        n_roads = 12
+    else:
+        # For large roads, use fewer roads
+        n_roads = 8
+
+    # Calculate grid size based on number of roads
+    grid_size = road_length * n_roads
     return grid_size
 
 
-def run_single_simulation(params):
-    """Run a single simulation with given parameters."""
-    blocks_size, density_percentage, steps, lane_width = params
+def run_single_simulation_generic(params, experiment_type="road_length"):
+    """Generic simulation runner for all experiment types."""
+    if experiment_type == "road_length":
+        road_length, density_percentage, steps, lane_width, sim_index = params
+        max_speed = 2
+        speed_percentage = 100
+    elif experiment_type == "speed_compliance":
+        (
+            density_percentage,
+            speed_percentage,
+            steps,
+            road_length,
+            lane_width,
+            sim_index,
+        ) = params
+        max_speed = 5  # Fixed max speed for speed compliance experiment
+    elif experiment_type == "max_speed":
+        max_speed, density_percentage, steps, road_length, sim_index = params
+        speed_percentage = (
+            100  # In max speed experiment, all cars should follow their speed limit
+        )
+    else:
+        raise ValueError(f"Unknown experiment type: {experiment_type}")
 
     # Initialize simulation
-    ui = SimulationUI(None, show_ui=False, colour_blind=False)
-    grid_size = calculate_grid_size(blocks_size)
+    grid_size = calculate_grid_size(road_length)
 
     # Calculate car count
-    temp_grid = Grid(grid_size, blocks_size, lane_width)
+    temp_grid = Grid(grid_size, road_length, max_speed)  # Pass max_speed to Grid
     total_cells = temp_grid.road_cells + temp_grid.intersection_cells
     density = density_percentage / 100.0
     car_count = int(total_cells * density)
 
     # Run simulation
-    ui.run_simulation_without_ui(
-        steps=steps,
+    ui = Simulation_2D_NoUI(
+        root=None,
+        max_iter=steps,
         grid_size=grid_size,
-        blocks_size=blocks_size,
-        lane_width=lane_width,
+        road_length=road_length,
+        road_max_speed=max_speed,
         car_count=car_count,
-        output=False,
+        car_percentage_max_speed=speed_percentage,  # Use the correct speed percentage
+        seed=42 + sim_index,  # Re-enable seeding for reproducibility
     )
 
-    # Calculate metrics
-    avg_velocity = np.mean(
-        [m["average_velocity"] for m in ui.density_tracker.metrics_history]
-    )
+    # Create density tracker and collect metrics
+    density_tracker = DensityTracker(ui.grid)
+    metrics_history = []
 
-    return {"blocks_size": blocks_size, "density": density, "velocity": avg_velocity}
-
-
-def save_results(results, block_sizes):
-    """Save simulation results to CSV and JSON files."""
-    # Save to CSV
-    df = pd.DataFrame(results)
-    df.to_csv("data/block_size/simulation_results.csv", index=False)
-
-    # Convert results to the format expected by create_analysis_plots
-    formatted_results = {
-        block_size: {"densities": [], "velocities": []} for block_size in block_sizes
-    }
-
-    for result in results:
-        block_size = result["blocks_size"]
-        formatted_results[block_size]["densities"].append(result["density"])
-        formatted_results[block_size]["velocities"].append(result["velocity"])
-
-    # Save raw results to JSON
-    json_results = {
-        str(k): {
-            "densities": [float(x) for x in v["densities"]],
-            "velocities": [float(x) for x in v["velocities"]],
-        }
-        for k, v in formatted_results.items()
-    }
-    with open("data/block_size/raw_results.json", "w") as f:
-        json.dump(json_results, f, indent=4)
-
-    return formatted_results
-
-
-def create_analysis_plots(results, block_sizes):
-    """Create and save analysis plots."""
-    plt.figure(figsize=(8, 6))
-
-    # Velocity vs Density plot
-    for blocks_size in block_sizes:
-        plt.plot(
-            np.array(results[blocks_size]["densities"]) * 100,
-            results[blocks_size]["velocities"],
-            "o-",
-            label=f"Block Size {blocks_size}",
-        )
-    plt.xlabel("Global Density (%)")
-    plt.ylabel("Average Velocity")
-    plt.grid(True, which="both", ls="-", alpha=0.2)
-    plt.minorticks_on()
-    plt.legend()
-    plt.title("Effect of Block Size on Velocity vs Density")
-
-    plt.tight_layout()
-    # timecode the plot
-    plt.savefig(f"data/block_size/density_analysis_{time.time()}.png")
-    plt.close()
-
-
-def run_experiment():
-    """Run the complete experiment with different block sizes and densities in parallel."""
-    # Configuration
-    lane_width = 2
-    block_sizes = [32, 64, 128, 256]
-    densities = range(5, 95, 1)
-    steps = 100
-
-    # Create parameter combinations for parallel processing
-    params = list(product(block_sizes, densities, [steps], [lane_width]))
-    total_simulations = len(params)
-
-    print(f"Running {total_simulations} simulations in parallel...")
-    n_processes = max(1, mp.cpu_count() - 1)
-    print(f"Using {n_processes} CPU cores")
-
-    # Run simulations in parallel with progress bar
-    with mp.Pool(n_processes) as pool:
-        results = list(
-            tqdm(
-                pool.imap(run_single_simulation, params),
-                total=total_simulations,
-                desc="Running simulations",
-            )
-        )
-
-    # Save results and create plots
-    formatted_results = save_results(results, block_sizes)
-    create_analysis_plots(formatted_results, block_sizes)
-
-
-def run_single_speed_simulation(params):
-    """Run a single simulation with given parameters for speed testing."""
-    density_percentage, car_speed_percentage, steps, blocks_size, lane_width = params
-
-    # Initialize simulation
-    ui = SimulationUI(None, show_ui=False, colour_blind=False)
-    grid_size = calculate_grid_size(blocks_size)
-
-    # Calculate car count
-    temp_grid = Grid(grid_size, blocks_size, lane_width)
-    total_cells = temp_grid.road_cells + temp_grid.intersection_cells
-    density = density_percentage / 100.0
-    car_count = int(total_cells * density)
-
-    # Initialize grid and density tracker
-    ui.grid = Grid(grid_size, blocks_size, lane_width)
-    ui.density_tracker = DensityTracker(ui.grid)
-
-    # Create cars with specified speed percentage
-    cars = ui.create_cars(car_count, car_speed_percentage=car_speed_percentage)
+    # Create cars and add them to the grid
+    cars = ui.create_cars(ui.grid, car_count, speed_percentage)
     ui.grid.add_cars(cars)
 
-    # Run simulation steps
-    for _ in range(steps):
+    # Run simulation and collect metrics
+    warmup_steps = int(steps * 0.2)  # Use 20% of steps as warmup
+    for step in range(steps):
         moved_cars = ui.grid.update_movement()
-        ui.density_tracker.update(moved_cars)
+        metrics = density_tracker.update(moved_cars)
+        if step >= warmup_steps:  # Only collect metrics after warmup
+            metrics_history.append(metrics)
 
-    # Calculate metrics
-    avg_velocity = np.mean(
-        [m["average_velocity"] for m in ui.density_tracker.metrics_history]
-    )
+    # Calculate average velocity over steady-state timesteps
+    avg_velocity = np.mean([m["average_velocity"] for m in metrics_history])
 
-    return {
-        "speed_percentage": car_speed_percentage,
-        "density": density,
-        "velocity": avg_velocity,
-    }
+    # Return results based on experiment type
+    result = {"density": density, "velocity": avg_velocity, "sim_index": sim_index}
 
+    if experiment_type == "road_length":
+        result["road_length"] = road_length
+    elif experiment_type == "speed_compliance":
+        result["speed_percentage"] = speed_percentage
+    elif experiment_type == "max_speed":
+        result["max_speed"] = max_speed
 
-def create_speed_analysis_plots(results, speed_percentages):
-    """Create and save analysis plots for speed experiment."""
-    plt.figure(figsize=(8, 6))
-
-    # Sort speed percentages for better visualization
-    speed_percentages = sorted(speed_percentages)
-
-    # Velocity vs Density plot
-    for speed in speed_percentages:
-        plt.plot(
-            np.array(results[speed]["densities"]) * 100,
-            results[speed]["velocities"],
-            "o-",
-            label=f"{speed}% Speed Compliance",
-        )
-    plt.xlabel("Global Density (%)")
-    plt.ylabel("Average Velocity")
-    plt.grid(True, which="both", ls="-", alpha=0.2)
-    plt.minorticks_on()
-    plt.legend()
-    plt.title("Effect of Speed Limit Compliance on Velocity vs Density")
-
-    plt.tight_layout()
-    plt.savefig(f"data/speed/density_analysis_{time.time()}.png")
-    plt.close()
+    return result
 
 
-def save_speed_results(results, speed_percentages):
-    """Save simulation results to CSV and JSON files."""
+def aggregate_results(raw_results, experiment_type="road_length"):
+    """
+    Aggregate results from multiple simulations for each parameter combination.
+    Performs statistical analysis including normality tests and confidence intervals.
+    """
+    # Determine the variable name based on experiment type
+    if experiment_type == "road_length":
+        var_name = "road_length"
+    elif experiment_type == "speed_compliance":
+        var_name = "speed_percentage"
+    elif experiment_type == "max_speed":
+        var_name = "max_speed"
+    else:
+        raise ValueError(f"Unknown experiment type: {experiment_type}")
+
+    # Group results by variable value and density
+    grouped_results = {}
+    for result in raw_results:
+        key = (result[var_name], result["density"])
+        if key not in grouped_results:
+            grouped_results[key] = []
+        grouped_results[key].append(result["velocity"])
+
+    # Calculate statistics for each group
+    aggregated_results = []
+    for (var_value, density), velocities in grouped_results.items():
+        velocities = np.array(velocities)
+        n = len(velocities)
+
+        # Basic statistics
+        mean_velocity = np.mean(velocities)
+        std_velocity = np.std(velocities, ddof=1) if n > 1 else 0
+
+        # Statistical tests and confidence intervals
+        if n < 2:
+            # Not enough samples for statistical analysis
+            ci_lower = mean_velocity
+            ci_upper = mean_velocity
+            normality_test_p = None
+            std_error = 0
+        else:
+            # Standard error of the mean
+            std_error = std_velocity / np.sqrt(n)
+
+            # Normality test (if enough samples)
+            if n >= 3:
+                _, normality_test_p = stats.shapiro(velocities)
+                if normality_test_p < 0.05:
+                    print(
+                        f"Warning: Non-normal distribution detected for {var_name}={var_value}, "
+                        f"density={density:.2f} (p={normality_test_p:.4f})"
+                    )
+            else:
+                normality_test_p = None
+
+            # Confidence intervals
+            if std_error == 0:
+                # All values are identical
+                ci_lower = mean_velocity
+                ci_upper = mean_velocity
+            else:
+                # Use t-distribution for small sample sizes
+                t_value = stats.t.ppf(0.975, df=n - 1)  # 95% CI
+                margin_of_error = t_value * std_error
+                ci_lower = mean_velocity - margin_of_error
+                ci_upper = mean_velocity + margin_of_error
+
+        # Store results with all statistical information
+        result_dict = {
+            var_name: var_value,
+            "density": density,
+            "velocity": mean_velocity,
+            "std": std_velocity,
+            "std_error": std_error,
+            "ci_lower": ci_lower,
+            "ci_upper": ci_upper,
+            "n_samples": n,
+        }
+        if normality_test_p is not None:
+            result_dict["normality_p_value"] = normality_test_p
+
+        aggregated_results.append(result_dict)
+
+    return aggregated_results
+
+
+def save_results_generic(results, variable_values, experiment_type="road_length"):
+    """Generic function to save results for all experiment types."""
+    # Get timestamp in ddmmhhmm format
+    timestamp = time.strftime("%d%m%H%M")
+
+    # Determine file paths based on experiment type
+    if experiment_type == "road_length":
+        base_path = "data/road_length"
+        csv_file = f"simulation_results_{timestamp}.csv"
+        var_name = "road_length"
+    elif experiment_type == "speed_compliance":
+        base_path = "data/speed_compliance"
+        csv_file = f"speed_simulation_results_{timestamp}.csv"
+        var_name = "speed_percentage"
+    elif experiment_type == "max_speed":
+        base_path = "data/max_speed"
+        csv_file = f"maxspeed_simulation_results_{timestamp}.csv"
+        var_name = "max_speed"
+    else:
+        raise ValueError(f"Unknown experiment type: {experiment_type}")
+
+    # Create directory if it doesn't exist
+    os.makedirs(base_path, exist_ok=True)
+
     # Save to CSV
     df = pd.DataFrame(results)
-    df.to_csv("data/speed/speed_simulation_results.csv", index=False)
+    df.to_csv(f"{base_path}/{csv_file}", index=False)
 
     # Convert results to the format expected by create_analysis_plots
     formatted_results = {
-        speed: {"densities": [], "velocities": []} for speed in speed_percentages
+        val: {
+            "densities": [],
+            "velocities": [],
+            "ci_lower": [],
+            "ci_upper": [],
+            "std_error": [],
+        }
+        for val in variable_values
     }
 
     for result in results:
-        speed = result["speed_percentage"]
-        formatted_results[speed]["densities"].append(result["density"])
-        formatted_results[speed]["velocities"].append(result["velocity"])
+        val = result[var_name]
+        formatted_results[val]["densities"].append(result["density"])
+        formatted_results[val]["velocities"].append(result["velocity"])
+        formatted_results[val]["ci_lower"].append(result["ci_lower"])
+        formatted_results[val]["ci_upper"].append(result["ci_upper"])
+        formatted_results[val]["std_error"].append(result["std_error"])
 
-    # Save raw results to JSON
+    # Save raw results to JSON with timestamp
     json_results = {
         str(k): {
             "densities": [float(x) for x in v["densities"]],
             "velocities": [float(x) for x in v["velocities"]],
+            "ci_lower": [float(x) for x in v["ci_lower"]],
+            "ci_upper": [float(x) for x in v["ci_upper"]],
+            "std_error": [float(x) for x in v["std_error"]],
         }
         for k, v in formatted_results.items()
     }
-    with open("data/speed/speed_raw_results.json", "w") as f:
+
+    # Add metadata to JSON
+    json_results["metadata"] = {
+        "timestamp": timestamp,
+        "experiment_type": experiment_type,
+        "n_variables": len(variable_values),
+        "variable_values": list(variable_values),
+        "statistical_info": {
+            "confidence_level": 0.95,
+            "ci_method": "t-distribution",
+            "normality_test": "Shapiro-Wilk",
+            "normality_alpha": 0.05,
+        },
+    }
+
+    with open(f"{base_path}/results_{timestamp}.json", "w") as f:
         json.dump(json_results, f, indent=4)
 
     return formatted_results
 
 
-def run_speed_experiment():
-    """Run experiment testing different speed limit compliance percentages."""
-    # Configuration
-    blocks_size = 64  # Fixed block size
-    lane_width = 2
-    speed_percentages = [
-        0,
-        25,
-        50,
-        75,
-        100,
-    ]  # Different percentages of cars following speed limit
-    densities = range(10, 95, 5)  # Test densities from 5% to 50%
-    steps = 250
+def create_analysis_plots_generic(
+    results, variable_values, experiment_type="road_length", log_scale=False
+):
+    """
+    Generic function to create analysis plots for all experiment types.
 
-    # Create parameter combinations for parallel processing
-    params = list(
-        product(densities, speed_percentages, [steps], [blocks_size], [lane_width])
-    )
+    Parameters:
+    -----------
+    results : dict
+        The results to plot
+    variable_values : list
+        The values of the variable being tested
+    experiment_type : str
+        The type of experiment (road_length, speed_compliance, or max_speed)
+    log_scale : bool
+        Whether to create an additional plot with log-log axes
+    """
+    # Get timestamp in ddmmhhmm format
+    timestamp = time.strftime("%d%m%H%M")
+
+    # Set up plot parameters based on experiment type
+    if experiment_type == "road_length":
+        base_path = "data/road_length"
+        label_prefix = "Road Length"
+        title = "Effect of Road Length on Speed vs Density"
+    elif experiment_type == "speed_compliance":
+        base_path = "data/speed_compliance"
+        label_prefix = "Speed Compliance"
+        title = "Effect of Speed Limit Compliance on Speed vs Density"
+    elif experiment_type == "max_speed":
+        base_path = "data/max_speed"
+        label_prefix = "Max Speed"
+        title = "Effect of Maximum Speed Limit on Speed vs Density"
+    else:
+        raise ValueError(f"Unknown experiment type: {experiment_type}")
+
+    # Create both normal and log-scale plots
+    plot_types = ["normal"]
+    if log_scale:
+        plot_types.append("log")
+
+    for plot_type in plot_types:
+        plt.figure(figsize=(10, 7))
+
+        # Velocity vs Density plot with confidence intervals
+        colors = plt.cm.tab10(np.linspace(0, 1, len(variable_values)))
+        for val, color in zip(variable_values, colors):
+            densities = np.array(results[val]["densities"]) * 100
+            velocities = np.array(results[val]["velocities"])
+            ci_lower = np.array(results[val]["ci_lower"])
+            ci_upper = np.array(results[val]["ci_upper"])
+
+            # Plot mean line with points
+            plt.plot(
+                densities, velocities, "o-", color=color, label=f"{label_prefix} {val}"
+            )
+
+            # Add confidence interval shading
+            plt.fill_between(densities, ci_lower, ci_upper, color=color, alpha=0.2)
+
+        plt.xlabel("Global Density (%)")
+        plt.ylabel("Average Speed")
+        plt.grid(True, which="both", ls="-", alpha=0.2)
+        plt.minorticks_on()
+
+        if plot_type == "log":
+            plt.xscale("log")
+            plt.yscale("log")
+            plot_title = f"{title}\n(Log-Log Scale, with 95% Confidence Intervals, after 20% warmup)"
+            filename = f"{base_path}/density_analysis_loglog_{timestamp}.png"
+        else:
+            plot_title = f"{title}\n(with 95% Confidence Intervals, after 20% warmup)"
+            filename = f"{base_path}/density_analysis_{timestamp}.png"
+
+        plt.title(plot_title)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300, bbox_inches="tight")
+        plt.close()
+
+
+def run_single_simulation_with_type(args):
+    """Wrapper function to unpack arguments for multiprocessing."""
+    params, experiment_type = args
+    return run_single_simulation_generic(params, experiment_type)
+
+
+def run_experiment_generic(
+    n_simulations,
+    steps,
+    warmup_fraction,
+    experiment_type="road_length",
+    log_scale=False,
+    **kwargs,
+):
+    """Generic function to run any type of experiment."""
+    # Create parameter combinations based on experiment type
+    params = []
+    if experiment_type == "road_length":
+        for road_length, density in product(
+            kwargs["road_lengths"], kwargs["densities"]
+        ):
+            for sim_index in range(n_simulations):
+                params.append(
+                    (
+                        (road_length, density, steps, kwargs["lane_width"], sim_index),
+                        experiment_type,
+                    )
+                )
+        variable_values = kwargs["road_lengths"]
+    elif experiment_type == "speed_compliance":
+        for density, speed in product(kwargs["densities"], kwargs["speed_percentages"]):
+            for sim_index in range(n_simulations):
+                params.append(
+                    (
+                        (
+                            density,
+                            speed,
+                            steps,
+                            kwargs["road_length"],
+                            kwargs["lane_width"],
+                            sim_index,
+                        ),
+                        experiment_type,
+                    )
+                )
+        variable_values = kwargs["speed_percentages"]
+    elif experiment_type == "max_speed":
+        for speed, density in product(kwargs["max_speeds"], kwargs["densities"]):
+            for sim_index in range(n_simulations):
+                params.append(
+                    (
+                        (speed, density, steps, kwargs["road_length"], sim_index),
+                        experiment_type,
+                    )
+                )
+        variable_values = kwargs["max_speeds"]
+    else:
+        raise ValueError(f"Unknown experiment type: {experiment_type}")
+
     total_simulations = len(params)
-
     print(f"Running {total_simulations} simulations in parallel...")
+    print(f"({n_simulations} simulations per parameter combination)")
     n_processes = max(1, mp.cpu_count() - 1)
     print(f"Using {n_processes} CPU cores")
 
     # Run simulations in parallel with progress bar
     with mp.Pool(n_processes) as pool:
-        results = list(
+        raw_results = list(
             tqdm(
-                pool.imap(run_single_speed_simulation, params),
+                pool.imap(run_single_simulation_with_type, params),
                 total=total_simulations,
                 desc="Running simulations",
             )
         )
 
+    # Aggregate results across simulations
+    results = aggregate_results(raw_results, experiment_type)
+
     # Save results and create plots
-    formatted_results = save_speed_results(results, speed_percentages)
-    create_speed_analysis_plots(formatted_results, speed_percentages)
+    formatted_results = save_results_generic(results, variable_values, experiment_type)
+    create_analysis_plots_generic(
+        formatted_results, variable_values, experiment_type, log_scale=log_scale
+    )
+
+
+def run_experiment(
+    n_simulations,
+    steps,
+    warmup_fraction,
+    lane_width,
+    road_lengths,
+    densities,
+    log_scale=False,
+):
+    """Run the road length experiment."""
+    run_experiment_generic(
+        n_simulations=n_simulations,
+        steps=steps,
+        warmup_fraction=warmup_fraction,
+        experiment_type="road_length",
+        lane_width=lane_width,
+        road_lengths=road_lengths,
+        densities=densities,
+        log_scale=log_scale,
+    )
+
+
+def run_speed_experiment(
+    n_simulations,
+    steps,
+    warmup_fraction,
+    lane_width,
+    road_length,
+    speed_percentages,
+    densities,
+    log_scale=False,
+):
+    """Run the speed compliance experiment."""
+    run_experiment_generic(
+        n_simulations=n_simulations,
+        steps=steps,
+        warmup_fraction=warmup_fraction,
+        experiment_type="speed_compliance",
+        lane_width=lane_width,
+        road_length=road_length,
+        speed_percentages=speed_percentages,
+        densities=densities,
+        log_scale=log_scale,
+    )
+
+
+def run_maxspeed_experiment(
+    n_simulations,
+    steps,
+    warmup_fraction,
+    lane_width,
+    road_length,
+    max_speeds,
+    densities,
+    log_scale=False,
+):
+    """Run the maximum speed experiment."""
+    run_experiment_generic(
+        n_simulations=n_simulations,
+        steps=steps,
+        warmup_fraction=warmup_fraction,
+        experiment_type="max_speed",
+        lane_width=lane_width,
+        road_length=road_length,
+        max_speeds=max_speeds,
+        densities=densities,
+        log_scale=log_scale,
+    )

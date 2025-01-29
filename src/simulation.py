@@ -650,7 +650,7 @@ class Simulation_2D_NoUI(Simulation_2D):
         seed: int = 42,
     ):
         super().__init__(root, seed)
-        self.grid = Grid(grid_size, road_length)
+        self.grid = Grid(grid_size, road_length, max_speed=road_max_speed)
         self.max_iter = max_iter
         self.grid_size = grid_size
         self.road_length = road_length
