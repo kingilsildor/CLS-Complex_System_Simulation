@@ -19,7 +19,11 @@ from src.utils import (
 
 class Car:
     def __init__(
-        self, grid: Grid, position: tuple, free_rotary: True, follow_limit: bool = False
+        self,
+        grid: Grid,
+        position: tuple,
+        free_rotary_method: bool = True,
+        follow_limit: bool = False,
     ):
         assert isinstance(grid, Grid)
 
@@ -35,7 +39,8 @@ class Car:
         self.grid.grid[position] = CAR_HEAD
         self.on_rotary = True if road_type in INTERSECTION_CELLS else False
 
-        self.free_rotary = free_rotary
+        # Means that the car will exit if it can, and move to the next available position otherwise.
+        self.free_rotary_method = free_rotary_method
 
         self.head_position = position
         self.flag = STAY_ON_ROTARY
@@ -264,20 +269,15 @@ class Car:
 
         # Move the car according to the road type and get success status
         success = False
-        # if free_rotary == True:
-
-        if self.on_rotary and self.flag == EXIT_ROTARY:
-            success = _exit_rotary()
-        elif self.on_rotary:
-            success = _move_rotary()
-        elif not self.on_rotary:
-            success = _move_straight()
+        if self.free_rotary_method:
+            if self.on_rotary:
+                success = _exit_rotary()
+                if not success:
+                    success = _move_rotary
+            else:
+                success = _move_straight()
         else:
-            raise ValueError("Invalid car state.")
-
-        # Randomly set the rotary flag
-        flag = self.flag_func()
-        self.set_car_rotary_flag(flag)
+            pass
 
         # Return max_speed if moved straight, 1 if moved on rotary/exit, 0 if didn't move
         if not success:
