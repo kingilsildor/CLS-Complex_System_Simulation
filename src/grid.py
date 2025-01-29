@@ -32,7 +32,7 @@ class Grid:
         - grid_size (int): The size of the grid (NxN).
         - blocks_size (int): The size of blocks between roads.
         - rotary_method (int): The method used to handle rotaries.
-        - max_speed (int): The maximum speed of cars on the grid.
+        - max_speed (int): The maximum speed of cars on the grid. Default is 2.
         """
         self.grid = np.full((grid_size, grid_size), BLOCKS_VALUE, dtype=int)
         self.underlying_grid = np.full(
@@ -69,7 +69,6 @@ class Grid:
         self.create_vertical_lanes()
         self.create_horizontal_lanes()
         self.create_intersections()
-        # self.create_edge_lanes()
 
     def create_edge_lanes(self):
         """

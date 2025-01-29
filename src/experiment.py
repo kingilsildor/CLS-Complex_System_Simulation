@@ -1,21 +1,31 @@
-import numpy as np
-from tqdm import tqdm
+import json
 import multiprocessing as mp
+import time
 from itertools import product
 
-from src.simulation import SimulationUI
-from src.grid import Grid
-from src.density import DensityTracker
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-import json
-import time
+from tqdm import tqdm
+
+from src.density import DensityTracker
+from src.grid import Grid
+from src.simulation import SimulationUI
 
 
-def calculate_grid_size(blocks_size):
-    """Calculate appropriate grid size for a given block size.
+def calculate_grid_size(blocks_size) -> int:
+    """
+    Calculate appropriate grid size for a given block size.
     We want enough blocks for meaningful results, but not too many to keep simulation fast.
     Grid size is scaled more aggressively for very small block sizes.
+
+    Params:
+    -------
+    - blocks_size (int): Size of blocks in the grid.
+
+    Returns:
+    --------
+    - grid_size (int): Size of the grid based on the block size
     """
     if blocks_size <= 8:
         # For very small blocks, use fewer blocks to keep grid size reasonable
@@ -32,8 +42,18 @@ def calculate_grid_size(blocks_size):
     return grid_size
 
 
-def run_single_simulation(params):
-    """Run a single simulation with given parameters."""
+def run_single_simulation(params) -> dict:
+    """
+    Run a single simulation with given parameters.
+
+    Params:
+    -------
+    - params (tuple): Tuple of simulation parameters (blocks_size, density_percentage, steps, lane_width).
+
+    Returns:
+    --------
+    - results (dict): Dictionary of simulation results.
+    """
     blocks_size, density_percentage, steps, lane_width = params
 
     # Initialize simulation
@@ -64,8 +84,19 @@ def run_single_simulation(params):
     return {"blocks_size": blocks_size, "density": density, "velocity": avg_velocity}
 
 
-def save_results(results, block_sizes):
-    """Save simulation results to CSV and JSON files."""
+def save_results(results: list, block_sizes: list) -> dict:
+    """
+    Save simulation results to CSV and JSON files.
+
+    Params:
+    -------
+    - results (list): List of simulation results.
+    - block_sizes (list): List of block sizes used in the experiment.
+
+    Returns:
+    --------
+    - formatted_results (dict): Dictionary of formatted simulation results.
+    """
     # Save to CSV
     df = pd.DataFrame(results)
     df.to_csv("data/block_size/simulation_results.csv", index=False)
@@ -94,8 +125,15 @@ def save_results(results, block_sizes):
     return formatted_results
 
 
-def create_analysis_plots(results, block_sizes):
-    """Create and save analysis plots."""
+def create_analysis_plots(results: dict, block_sizes: list):
+    """
+    Create and save analysis plots.
+
+    Params:
+    -------
+    - results (dict): Dictionary of formatted simulation results.
+    - block_sizes (list): List of block sizes used in the experiment.
+    """
     plt.figure(figsize=(8, 6))
 
     # Velocity vs Density plot
@@ -120,7 +158,9 @@ def create_analysis_plots(results, block_sizes):
 
 
 def run_experiment():
-    """Run the complete experiment with different block sizes and densities in parallel."""
+    """
+    Run the complete experiment with different block sizes and densities in parallel.
+    """
     # Configuration
     lane_width = 2
     block_sizes = [32, 64, 128, 256]
@@ -150,8 +190,20 @@ def run_experiment():
     create_analysis_plots(formatted_results, block_sizes)
 
 
-def run_single_speed_simulation(params):
-    """Run a single simulation with given parameters for speed testing."""
+def run_single_speed_simulation(params) -> dict:
+    """
+    Run a single simulation with given parameters for speed testing.
+
+    Params:
+    -------
+    - params (tuple): Tuple of simulation parameters (density_percentage, car_speed_percentage, steps, blocks_size, lane_width).
+
+    Returns:
+    --------
+    - speed_percentage (float): Percentage of cars following speed limit.
+    - density (float): Density of the traffic.
+    - velocity (float): Average velocity of cars in the simulation.
+    """
     density_percentage, car_speed_percentage, steps, blocks_size, lane_width = params
 
     # Initialize simulation
@@ -189,8 +241,15 @@ def run_single_speed_simulation(params):
     }
 
 
-def create_speed_analysis_plots(results, speed_percentages):
-    """Create and save analysis plots for speed experiment."""
+def create_speed_analysis_plots(results: dict, speed_percentages: list):
+    """
+    Create and save analysis plots for speed experiment.
+
+    Params:
+    -------
+    - results (dict): Dictionary of formatted simulation results.
+    - speed_percentages (list): List of speed percentages used in the experiment.
+    """
     plt.figure(figsize=(8, 6))
 
     # Sort speed percentages for better visualization
@@ -216,8 +275,15 @@ def create_speed_analysis_plots(results, speed_percentages):
     plt.close()
 
 
-def save_speed_results(results, speed_percentages):
-    """Save simulation results to CSV and JSON files."""
+def save_speed_results(results: list, speed_percentages: list):
+    """
+    Save simulation results to CSV and JSON files.
+
+    Params:
+    -------
+    - results (list): List of simulation results.
+    - speed_percentages (list): List of speed percentages used in the experiment.
+    """
     # Save to CSV
     df = pd.DataFrame(results)
     df.to_csv("data/speed/speed_simulation_results.csv", index=False)
@@ -247,7 +313,9 @@ def save_speed_results(results, speed_percentages):
 
 
 def run_speed_experiment():
-    """Run experiment testing different speed limit compliance percentages."""
+    """
+    Run experiment testing different speed limit compliance percentages.
+    """
     # Configuration
     blocks_size = 64  # Fixed block size
     lane_width = 2

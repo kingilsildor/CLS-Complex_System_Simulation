@@ -1,4 +1,7 @@
-# Description: This file contains the constants used in the project.
+"""
+Description: This file contains the constants used in the project.
+"""
+
 # Grid values
 BLOCKS_VALUE = 0
 VERTICAL_ROAD_VALUE_LEFT = 1
@@ -14,6 +17,7 @@ INTERSECTION_EXIT = 6
 CAR_HEAD = 7
 CAR_BODY = 10
 
+# Car directions
 CAR_DIRECTION = {
     1: "⬇️",
     2: "⬆️",
@@ -28,7 +32,6 @@ FREE_MOVEMENT = 1
 # SLIDER VALUES
 MIN_SPEED = 1
 MAX_SPEED = 5
-
 
 # File type
 FILE_EXTENSION = "txt"
