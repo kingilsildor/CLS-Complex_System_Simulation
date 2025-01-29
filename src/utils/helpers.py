@@ -1,7 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+
+random.seed(42)
+np.random.seed(42)
 
 def generate_initial_state(length, density):
+
+    #set random seed
+    random.seed(42)
+    np.random.seed(42)
+
     """Generates a random initial state for the traffic simulation."""
     import numpy as np
     return np.random.choice([0, 1], size=length, p=[1-density, density])

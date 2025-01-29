@@ -10,6 +10,30 @@ from matplotlib.animation import FuncAnimation
 
 from models.nagel_schreckenberg import NagelSchreckenberg
 
+#set random seed
+random.seed(42)
+np.random.seed(42)
+
+def generate_density_vs_speed_data(length, max_speed, randomization, time_steps):
+
+    #set random seed
+    random.seed(42)
+    np.random.seed(42)
+
+    densities = []
+    avg_speeds = []
+    for num_cars in range(1, length + 1):  # Cover the full range of densities
+        model = NagelSchreckenberg(length, num_cars, max_speed, randomization)
+        total_speed = 0
+        for _ in range(time_steps):
+            model.update()
+            total_speed += model.total_speed
+        avg_speed = total_speed / (time_steps * num_cars)
+        density = num_cars / length
+        densities.append(density)
+        avg_speeds.append(avg_speed)
+    return densities, avg_speeds
+
 def main():
     # Initialize the tkinter window
     root = tk.Tk()
@@ -54,15 +78,15 @@ def main():
     plot_canvas.bind_all("<MouseWheel>", on_mouse_wheel)
 
     # Simulation parameters
-    length = tk.IntVar(value=100)
+    length = tk.IntVar(value=200)
     num_cars = tk.IntVar(value=10)
-    max_speed = tk.IntVar(value=10)
+    max_speed = tk.IntVar(value=5)
     time_steps = tk.IntVar(value=100)
     randomization = tk.BooleanVar(value=True)
 
     # Create sliders for adjusting parameters
     tk.Label(control_frame, text="Length of the road").pack()
-    tk.Scale(control_frame, from_=10, to=200, orient=tk.HORIZONTAL, variable=length).pack()
+    tk.Scale(control_frame, from_=10, to=100, orient=tk.HORIZONTAL, variable=length).pack()
     tk.Label(control_frame, text="Number of cars").pack()
     tk.Scale(control_frame, from_=1, to=200, orient=tk.HORIZONTAL, variable=num_cars).pack()
     tk.Label(control_frame, text="Maximum speed of cars").pack()
@@ -149,14 +173,6 @@ def main():
         line3.set_data([], [])
         return line3,
 
-    #def init3():
-        #ax3.set_xlim(0, length.get())
-        #ax3.set_ylim(time_steps.get(), 0)  # Flip the y-axis
-        #ax3.set_xlabel("Position")
-        #ax3.set_ylabel("Time")
-        #ax3.set_title("Time-Space Diagram")
-        #return ax3,
-
     def update_plot3(frame):
         x_data = []
         y_data = []
@@ -228,8 +244,8 @@ def main():
 
     def initialize_model():
         nonlocal model
-        print(f"Initializing model with length={length.get()}, num_cars={num_cars.get()}, max_speed={max_speed.get()}")
-        model = NagelSchreckenberg(length.get(), num_cars.get(), max_speed.get())
+        print(f"Initializing model with length={length.get()}, num_cars={num_cars.get()}, max_speed={max_speed.get()}, randomization={randomization.get()}")
+        model = NagelSchreckenberg(length.get(), num_cars.get(), max_speed.get(), randomization.get())
 
     def on_closing():
         stop_simulation()

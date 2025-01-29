@@ -1,8 +1,12 @@
 import numpy as np
 import random
 
+#set global random seed
+random.seed(42)
+np.random.seed(42)
+
 class NagelSchreckenberg:
-    def __init__(self, road_length, num_cars, max_speed, randomization=True):
+    def __init__(self, road_length, num_cars, max_speed, randomization):
         self.road_length = road_length
         self.num_cars = num_cars
         self.max_speed = max_speed
@@ -28,6 +32,11 @@ class NagelSchreckenberg:
         self.initialize()
 
     def initialize(self):
+
+        #set random seed
+        random.seed(42)
+        np.random.seed(42)
+
         # Initialize the road with cars
         self.road = [0] * self.road_length
         positions = random.sample(range(self.road_length), self.num_cars)
