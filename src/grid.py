@@ -5,9 +5,9 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_DRIVE,
+    ROAD_CELLS,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
-    ROAD_CELLS,
 )
 
 temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
@@ -158,8 +158,8 @@ class Grid:
         --------
         set: A set of distances moved by cars
         """
-        moved_distances = []
-        for car in self.cars:
+        moved_distances = np.zeros(len(self.cars), dtype=int)
+        for id, car in enumerate(self.cars):
             distance = car.move()
-            moved_distances.append(distance)
+            moved_distances[id] = distance
         return moved_distances

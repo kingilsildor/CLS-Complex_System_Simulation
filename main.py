@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from src.simulation_boilerplate import (
+from src.simulation import (
     Simulation_1D,
     Simulation_2D_NoUI,
     Simulation_2D_UI,
@@ -39,5 +39,5 @@ def run_2D_UI_simulation():
 
 if __name__ == "__main__":
     # run_2D_NoUI_simulation()
-    # run_2D_UI_simulation()
-    run_1D_simulation()
+    run_2D_UI_simulation()
+    # run_1D_simulation()
