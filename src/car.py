@@ -1,25 +1,32 @@
+import time
+
 import numpy as np
 
 # from src.grid import Grid
 from src.grid import Grid
-
 from src.utils import (
     CAR_HEAD,
-    EXIT_ROTARY,
+    FIXED_DESTINATION,
+    FREE_MOVEMENT,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_CELLS,
     MAX_SPEED,
     MIN_SPEED,
     ROAD_CELLS,
-    STAY_ON_ROTARY,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
 )
 
 
 class Car:
-    def __init__(self, grid: Grid, position: tuple, follow_limit: bool = False):
+    def __init__(
+        self,
+        grid: Grid,
+        position: tuple,
+        free_rotary_method: bool = True,
+        follow_limit: bool = False,
+    ):
         assert isinstance(grid, Grid)
 
         self.grid = grid
@@ -34,8 +41,17 @@ class Car:
         self.grid.grid[position] = CAR_HEAD
         self.on_rotary = True if road_type in INTERSECTION_CELLS else False
 
+        # Means that the car will exit if it can, and move to the next available position otherwise.
+        self.free_rotary_method = free_rotary_method
+
         self.head_position = position
-        self.flag = STAY_ON_ROTARY
+        self.flag = None
+        if free_rotary_method:
+            self.flag = FREE_MOVEMENT
+        else:
+            self.flag = FIXED_DESTINATION
+        assert self.flag in [FREE_MOVEMENT, FIXED_DESTINATION]
+        self.road_destination = None
 
         # Setup speed
         assert isinstance(follow_limit, bool)
@@ -47,19 +63,6 @@ class Car:
             random_speed = np.random.randint(MIN_SPEED, MAX_SPEED + 1)
             assert MIN_SPEED <= random_speed <= MAX_SPEED
             self.max_speed = random_speed
-
-    def flag_func(self):
-        """
-        Function to change the car flag
-
-        Returns:
-        --------
-        - flag (int): The new flag of the car.
-        """
-        if np.random.uniform() < 0.2:
-            return EXIT_ROTARY
-        else:
-            return STAY_ON_ROTARY
 
     def get_boundary_pos(self, x: int, y: int) -> tuple:
         """
@@ -134,6 +137,39 @@ class Car:
         assert isinstance(possible_cell, np.int64)
         return possible_cell
 
+    def get_right(self, possible_pos: tuple) -> int:
+        """
+        Return the right cell of the car.
+
+        Parameters:
+        -----------
+        - possible_pos (tuple): The possible position of the car.
+
+        Returns:
+        --------
+        - possible_cell (int): The cell value of the right cell.
+        """
+        assert isinstance(possible_pos, tuple) and len(possible_pos) == 2
+        right_x, right_y = possible_pos
+
+        # Move the car to the next cell on the right and change the road type to straight
+        if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
+            possible_pos = self.get_boundary_pos(right_x, right_y + 1)
+            road_type = HORIZONTAL_ROAD_VALUE_RIGHT
+        elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
+            possible_pos = self.get_boundary_pos(right_x, right_y - 1)
+            road_type = HORIZONTAL_ROAD_VALUE_LEFT
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
+            possible_pos = self.get_boundary_pos(right_x + 1, right_y)
+            road_type = VERTICAL_ROAD_VALUE_LEFT
+        elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
+            possible_pos = self.get_boundary_pos(right_x - 1, right_y)
+            road_type = VERTICAL_ROAD_VALUE_RIGHT
+
+        assert isinstance(possible_pos, tuple) and len(possible_pos) == 2
+        assert isinstance(road_type, int)
+        return possible_pos, road_type
+
     def move(self):
         """
         Move the car to the next cell controller function.
@@ -144,11 +180,17 @@ class Car:
             """
             Move the car straight forward.
             Returns True if moved, False otherwise.
+
+            Returns:
+            --------
+            - success (bool): True if moved, False otherwise.
+            - steps (int): The number of steps the car moved.
             """
             current_x, current_y = self.head_position
             new_x, new_y = current_x, current_y
             last_open_space = (current_x, current_y)
 
+            steps = 0
             for move in range(self.max_speed):
                 if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
                     new_x, new_y = self.get_boundary_pos(current_x - 1, current_y)
@@ -173,17 +215,19 @@ class Car:
                 if possible_cell in ROAD_CELLS:
                     last_open_space = (new_x, new_y)
                 current_x, current_y = new_x, new_y
+                steps += 1
 
                 if possible_cell in INTERSECTION_CELLS:
                     self.set_car_rotary(True)
+                    self.set_random_desination()
                     self.set_car_location((current_x, current_y))
-                    return True
+                    return True, steps
 
             assert isinstance(last_open_space, tuple) and len(last_open_space) == 2
             if last_open_space != self.head_position:
                 self.set_car_location(last_open_space)
-                return True
-            return False
+                return True, steps
+            return False, steps
 
         def _move_rotary():
             """
@@ -213,6 +257,11 @@ class Car:
 
             if possible_cell == CAR_HEAD:
                 return False
+            if (
+                possible_cell != self.road_destination
+                and self.flag == FIXED_DESTINATION
+            ):
+                return False
             if possible_cell in ROAD_CELLS or possible_cell in INTERSECTION_CELLS:
                 self.set_car_location(possible_pos)
                 self.set_car_road_type(possible_road_type)
@@ -225,23 +274,7 @@ class Car:
             Returns True if moved, False otherwise.
             """
             current_x, current_y = self.head_position
-            possible_pos, road_type = None, None
-
-            # Move the car to the next cell on the right and change the road type to straight
-            if self.road_type == VERTICAL_ROAD_VALUE_RIGHT:
-                possible_pos = self.get_boundary_pos(current_x, current_y + 1)
-                road_type = HORIZONTAL_ROAD_VALUE_RIGHT
-            elif self.road_type == VERTICAL_ROAD_VALUE_LEFT:
-                possible_pos = self.get_boundary_pos(current_x, current_y - 1)
-                road_type = HORIZONTAL_ROAD_VALUE_LEFT
-            elif self.road_type == HORIZONTAL_ROAD_VALUE_RIGHT:
-                possible_pos = self.get_boundary_pos(current_x + 1, current_y)
-                road_type = VERTICAL_ROAD_VALUE_LEFT
-            elif self.road_type == HORIZONTAL_ROAD_VALUE_LEFT:
-                possible_pos = self.get_boundary_pos(current_x - 1, current_y)
-                road_type = VERTICAL_ROAD_VALUE_RIGHT
-
-            assert possible_pos is not None
+            possible_pos, road_type = self.get_right((current_x, current_y))
             possible_cell = self.get_infront(possible_pos)
 
             if (
@@ -252,6 +285,10 @@ class Car:
             if possible_cell == CAR_HEAD:
                 return False
 
+            if self.flag == FIXED_DESTINATION:
+                if possible_cell != self.road_destination:
+                    return False
+
             if possible_cell not in INTERSECTION_CELLS:
                 self.set_car_rotary(False)
 
@@ -260,19 +297,23 @@ class Car:
             return True
 
         # Move the car according to the road type and get success status
-        success = False
-        if self.on_rotary and self.flag == EXIT_ROTARY:
-            success = _exit_rotary()
-        elif self.on_rotary:
-            success = _move_rotary()
+        success, steps = False, 0
+
+        if self.on_rotary:
+            if self.flag == FIXED_DESTINATION:
+                success = _exit_rotary()
+                if not success:
+                    success = _move_rotary()
+            elif self.flag == FREE_MOVEMENT:
+                success = _exit_rotary()
+                if not success:
+                    success = _move_rotary()
+            else:
+                success = _move_rotary()
         elif not self.on_rotary:
-            success = _move_straight()
+            success, steps = _move_straight()
         else:
             raise ValueError("Invalid car state.")
-
-        # Randomly set the rotary flag
-        flag = self.flag_func()
-        self.set_car_rotary_flag(flag)
 
         # Return max_speed if moved straight, 1 if moved on rotary/exit, 0 if didn't move
         if not success:
@@ -280,7 +321,7 @@ class Car:
         elif self.on_rotary:
             return 1
         else:
-            return self.max_speed
+            return steps
 
     #######################################################
     # Setters for the car object with error checking,     #
@@ -339,3 +380,9 @@ class Car:
         """
         assert isinstance(rotary, bool)
         self.on_rotary = rotary
+
+    def set_random_desination(self):
+        if self.flag == FIXED_DESTINATION:
+            np.random.seed(int(time.time()))
+            self.road_destination = np.random.choice(ROAD_CELLS)
+            assert self.road_destination in ROAD_CELLS
