@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 
 # from src.grid import Grid
@@ -62,7 +60,7 @@ class Car:
         Get the boundary position of the grid.
         Return the position on the other side of the grid.
 
-        Parameters:
+        Params:
         -----------
         - x (int): The x position of the car.
         - y (int): The y position of the car.
@@ -86,7 +84,7 @@ class Car:
         """
         Return the cell in front of the car.
 
-        Parameters:
+        Params:
         -----------
         - possible_pos (tuple): The possible position of the car.
 
@@ -103,7 +101,7 @@ class Car:
         """
         Return the diagonal cell of the car.
 
-        Parameters:
+        Params:
         -----------
         - possible_pos (tuple): The possible position of the car.
 
@@ -132,7 +130,7 @@ class Car:
         """
         Return the right cell of the car.
 
-        Parameters:
+        Params:
         -----------
         - possible_pos (tuple): The possible position of the car.
 
@@ -320,7 +318,7 @@ class Car:
         Set the car location to the new position.
 
 
-        Parameters:
+        Params:
         -----------
         - new_pos (tuple): The new position of the car.
         """
@@ -336,7 +334,7 @@ class Car:
         """
         Set the road type of the car.
 
-        Parameters:
+        Params:
         -----------
         - road_type (int): The new road type of the car.
         """
@@ -345,24 +343,11 @@ class Car:
             raise ValueError(f"Invalid road type {road_type} for the car.")
         self.road_type = road_type
 
-    def set_car_rotary_flag(self, flag: int):
-        """
-        Set the rotary flag of the car.
-
-        Parameters:
-        -----------
-        - flag (int): The new rotary flag of the car.
-        """
-        assert isinstance(flag, int)
-        if flag not in [0, 1]:
-            raise ValueError(f"Invalid rotary flag {flag} for the car.")
-        self.flag = flag
-
     def set_car_rotary(self, rotary: bool):
         """
         Set the rotary flag of the car.
 
-        Parameters:
+        Params:
         -----------
         - rotary (bool): The new rotary flag of the car.
         """
@@ -371,6 +356,5 @@ class Car:
 
     def set_random_desination(self):
         if self.flag == FIXED_DESTINATION:
-            np.random.seed(int(time.time()))
             self.road_destination = np.random.choice(ROAD_CELLS)
             assert self.road_destination in ROAD_CELLS

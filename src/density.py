@@ -96,6 +96,8 @@ class DensityTracker:
         }
 
     def set_initial_cars(self):
-        """Set the initial number of cars for percentage calculation."""
+        """
+        Set the initial number of cars for percentage calculation.
+        """
         car_positions = np.where(self.grid.grid == CAR_HEAD)
         self.initial_cars = len(car_positions[0])
