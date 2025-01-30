@@ -6,7 +6,6 @@ from src.simulation import (
     Simulation_2D_UI,
 )
 from src.utils import FIXED_DESTINATION, FREE_MOVEMENT
-
 from src.experiment import run_all_experiments
 
 

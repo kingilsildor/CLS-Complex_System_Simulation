@@ -113,7 +113,7 @@ The file also included asserts and raise statements to make it so that only the 
 - **`slide/Complex Systems Simulation.pdf`**: PDF file of the presentation slides for the simulation project.
 - **`src/car.py`**: Defines the Car class and its behavior within the simulation.
 - **`src/density.py`**: Contains functions to calculate and manage density metrics in the simulation.
-- **`src/experiment.py`**: Script for running various simulation experiments.
+- **`src/experiment.py`**: Large-scale experiment framework and analysis
 - **`src/grid.py`**: Implements the Grid class and associated grid operations for the simulation.
 - **`src/helper.py`**: Provides helper functions used across different modules.
 - **`src/nagel_schreckenberg.py`**: Implements the Nagel-Schreckenberg traffic model.
@@ -129,7 +129,7 @@ We planed on collaborating in most parts of the assignment. We made a Trello boa
 For the presentation the work was also devided around the things we worked around.
 
 - **Max**: Created the 1D model and the necessary analytics for it.
-- **Koen**:
+- **Koen**: Contributed to the system-wide analysis capabilities of the simulation by writing the `Density` class and experiment file.
 - **Bart**: Worked on the Car logic in collaboration with Tycho and implemented the testing.
 - **Tycho**: Worked on the boilerplates of the code base, such as the `Car`, `Grid` and `Simulation` classes. Handeled the repository and helped with bug fixing.
 

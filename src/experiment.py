@@ -7,7 +7,7 @@ from itertools import product
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tqdm
+from tqdm import tqdm
 from scipy import stats
 
 from src.density import DensityTracker
@@ -31,19 +31,18 @@ def get_experiment_config() -> dict:
         "steps": 1000,  # Steps per simulation
         "lane_width": 2,
         "warmup_fraction": 0.2,  # Fraction of steps to use as warmup
+        "steady_state_fraction": 1,  # Fraction of steps to use as steady state
         "log_scale": True,  # Whether to create log-log plots in addition to normal plots
-        "rotary_method": FIXED_DESTINATION,  # FREE_MOVEMENT or FIXED_DESTINATION
+        "rotary_methods": [FIXED_DESTINATION],  # Run both methods
         "density_start": 5,  # Starting density percentage
-        "density_end": 95,  # Ending density percentage
-        "density_step": 5,  # Step size for density
+        "density_end": 105,  # Ending density percentage
+        "density_step": 10,  # Step size for density
         # Which experiments to run
         "run_road_length": True,
-        "run_speed_compliance": False,
-        "run_max_speed": False,
+        "run_speed_compliance": True,
+        "run_max_speed": True,
         # Road length experiment parameters
-        "road_length": {
-            "road_lengths": [32, 64, 128],
-        },
+        "road_length": {"road_lengths": [32, 64, 128, 256]},
         # Speed compliance experiment parameters
         "speed_compliance": {
             "road_length": 64,
@@ -76,39 +75,63 @@ def run_all_experiments():
 
     if config["run_road_length"]:
         print("\n=== Running Road Length Experiment ===")
-        run_experiment(
-            n_simulations=config["n_simulations"],
-            steps=config["steps"],
-            warmup_fraction=config["warmup_fraction"],
-            lane_width=config["lane_width"],
-            log_scale=config["log_scale"],
-            rotary_method=config["rotary_method"],
-            **config["road_length"],
-        )
+        for rotary_method in config["rotary_methods"]:
+            method_name = (
+                "Free Movement"
+                if rotary_method == FREE_MOVEMENT
+                else "Fixed Destination"
+            )
+            print(f"\nRunning with {method_name} rotary method")
+            run_experiment(
+                n_simulations=config["n_simulations"],
+                steps=config["steps"],
+                warmup_fraction=config["warmup_fraction"],
+                steady_state_fraction=config["steady_state_fraction"],
+                lane_width=config["lane_width"],
+                log_scale=config["log_scale"],
+                rotary_method=rotary_method,
+                **config["road_length"],
+            )
 
     if config["run_speed_compliance"]:
         print("\n=== Running Speed Compliance Experiment ===")
-        run_speed_experiment(
-            n_simulations=config["n_simulations"],
-            steps=config["steps"],
-            warmup_fraction=config["warmup_fraction"],
-            lane_width=config["lane_width"],
-            log_scale=config["log_scale"],
-            rotary_method=config["rotary_method"],
-            **config["speed_compliance"],
-        )
+        for rotary_method in config["rotary_methods"]:
+            method_name = (
+                "Free Movement"
+                if rotary_method == FREE_MOVEMENT
+                else "Fixed Destination"
+            )
+            print(f"\nRunning with {method_name} rotary method")
+            run_speed_experiment(
+                n_simulations=config["n_simulations"],
+                steps=config["steps"],
+                warmup_fraction=config["warmup_fraction"],
+                steady_state_fraction=config["steady_state_fraction"],
+                lane_width=config["lane_width"],
+                log_scale=config["log_scale"],
+                rotary_method=rotary_method,
+                **config["speed_compliance"],
+            )
 
     if config["run_max_speed"]:
         print("\n=== Running Maximum Speed Experiment ===")
-        run_maxspeed_experiment(
-            n_simulations=config["n_simulations"],
-            steps=config["steps"],
-            warmup_fraction=config["warmup_fraction"],
-            lane_width=config["lane_width"],
-            log_scale=config["log_scale"],
-            rotary_method=config["rotary_method"],
-            **config["max_speed"],
-        )
+        for rotary_method in config["rotary_methods"]:
+            method_name = (
+                "Free Movement"
+                if rotary_method == FREE_MOVEMENT
+                else "Fixed Destination"
+            )
+            print(f"\nRunning with {method_name} rotary method")
+            run_maxspeed_experiment(
+                n_simulations=config["n_simulations"],
+                steps=config["steps"],
+                warmup_fraction=config["warmup_fraction"],
+                steady_state_fraction=config["steady_state_fraction"],
+                lane_width=config["lane_width"],
+                log_scale=config["log_scale"],
+                rotary_method=rotary_method,
+                **config["max_speed"],
+            )
 
 
 def calculate_grid_size(road_length: int) -> int:
@@ -125,18 +148,9 @@ def calculate_grid_size(road_length: int) -> int:
     -------
     - grid_size (int): The size of the grid.
     """
-    if road_length <= 8:
-        # For very small roads, use fewer roads to keep grid size reasonable
-        n_roads = 8
-    elif road_length <= 32:
-        # For small-medium roads, use moderate number of roads
-        n_roads = 12
-    else:
-        # For large roads, use fewer roads
-        n_roads = 8
 
     # Calculate grid size based on number of roads
-    grid_size = road_length * n_roads
+    grid_size = 512
     return grid_size
 
 
@@ -157,9 +171,15 @@ def run_single_simulation_generic(
     - result (dict): The results of the simulation.
     """
     if experiment_type == "road_length":
-        road_length, density_percentage, steps, lane_width, rotary_method, sim_index = (
-            params
-        )
+        (
+            road_length,
+            density_percentage,
+            steps,
+            lane_width,
+            rotary_method,
+            sim_index,
+            steady_state_fraction,
+        ) = params
         max_speed = 2
         speed_percentage = 100
     elif experiment_type == "speed_compliance":
@@ -171,12 +191,19 @@ def run_single_simulation_generic(
             lane_width,
             rotary_method,
             sim_index,
+            steady_state_fraction,
         ) = params
         max_speed = 5  # Fixed max speed for speed compliance experiment
     elif experiment_type == "max_speed":
-        max_speed, density_percentage, steps, road_length, rotary_method, sim_index = (
-            params
-        )
+        (
+            max_speed,
+            density_percentage,
+            steps,
+            road_length,
+            rotary_method,
+            sim_index,
+            steady_state_fraction,
+        ) = params
         speed_percentage = (
             100  # In max speed experiment, all cars should follow their speed limit
         )
@@ -196,7 +223,7 @@ def run_single_simulation_generic(
     ui = Simulation_2D_NoUI(
         root=None,
         max_iter=steps,
-        rotary_method=rotary_method,  # Pass the rotary method
+        rotary_method=rotary_method,
         grid_size=grid_size,
         road_length=road_length,
         road_max_speed=max_speed,
@@ -207,26 +234,90 @@ def run_single_simulation_generic(
 
     # Create density tracker and collect metrics
     density_tracker = DensityTracker(ui.grid)
-    metrics_history = []
+    metrics_history = []  # For steady state calculation
+    all_metrics_history = []  # For gridlock detection
 
     # Create cars and add them to the grid
     cars = ui.create_cars(ui.grid, car_count, speed_percentage)
     ui.grid.add_cars(cars)
 
+    # Variables for gridlock detection
+    gridlock_threshold = 50  # Number of steps to consider as gridlock
+    zero_movement_count = 0
+
     # Run simulation and collect metrics
     warmup_steps = int(steps * 0.2)  # Use 20% of steps as warmup
+    steady_state_start = int(
+        steps * (1 - steady_state_fraction)
+    )  # Calculate start of steady state period
+
+    # Ensure we have at least one step for metrics collection
+    steady_state_start = min(steady_state_start, steps - 1)
+    steady_state_start = max(
+        steady_state_start, warmup_steps
+    )  # Don't start before warmup
+
     for step in range(steps):
         moved_cars = ui.grid.update_movement()
         metrics = density_tracker.update(moved_cars)
-        if step >= warmup_steps:  # Only collect metrics after warmup
+
+        # Only collect metrics for gridlock detection after warmup
+        if step >= warmup_steps:
+            all_metrics_history.append(
+                metrics
+            )  # Collect metrics for gridlock detection
+
+        # Check for gridlock
+        total_movement = sum(moved_cars)
+        if total_movement == 0:
+            zero_movement_count += 1
+        else:
+            zero_movement_count = 0
+
+        # If no movement for too long after warmup, consider it gridlocked
+        if step >= warmup_steps and zero_movement_count >= gridlock_threshold:
+            # Calculate average velocity over all steps after warmup
+            all_velocities = [m["average_velocity"] for m in all_metrics_history]
+            overall_avg_velocity = np.mean(all_velocities) if all_velocities else 0.0
+
+            result = {
+                "density": density,
+                "velocity": overall_avg_velocity,  # Return the overall average
+                "sim_index": sim_index,
+                "rotary_method": rotary_method,
+                "gridlocked": True,
+            }
+
+            # Add experiment-specific parameters
+            if experiment_type == "road_length":
+                result["road_length"] = road_length
+            elif experiment_type == "speed_compliance":
+                result["speed_percentage"] = speed_percentage
+            elif experiment_type == "max_speed":
+                result["max_speed"] = max_speed
+
+            return result
+
+        if step >= steady_state_start:  # Only collect metrics in steady state period
             metrics_history.append(metrics)
 
-    # Calculate average velocity over steady-state timesteps
-    avg_velocity = np.mean([m["average_velocity"] for m in metrics_history])
+    # Calculate average velocity over steady state period
+    # Ensure we have at least one metric
+    if not metrics_history:
+        avg_velocity = 0.0  # If no metrics were collected, assume gridlock
+    else:
+        avg_velocity = np.mean([m["average_velocity"] for m in metrics_history])
 
     # Return results based on experiment type
-    result = {"density": density, "velocity": avg_velocity, "sim_index": sim_index}
+    result = {
+        "density": density,
+        "velocity": avg_velocity,
+        "sim_index": sim_index,
+        "rotary_method": rotary_method,
+        "gridlocked": False,
+    }
 
+    # Add experiment-specific parameters
     if experiment_type == "road_length":
         result["road_length"] = road_length
     elif experiment_type == "speed_compliance":
@@ -261,19 +352,31 @@ def aggregate_results(raw_results: list, experiment_type: str = "road_length") -
     else:
         raise ValueError(f"Unknown experiment type: {experiment_type}")
 
-    # Group results by variable value and density
+    # Group results by variable value, density, and rotary method
     grouped_results = {}
     for result in raw_results:
-        key = (result[var_name], result["density"])
+        key = (result[var_name], result["density"], result["rotary_method"])
         if key not in grouped_results:
-            grouped_results[key] = []
-        grouped_results[key].append(result["velocity"])
+            grouped_results[key] = {
+                "velocities": [],
+                "gridlocked": 0,  # Count of gridlocked simulations
+            }
+        grouped_results[key]["velocities"].append(result["velocity"])
+        if result.get("gridlocked", False):
+            grouped_results[key]["gridlocked"] += 1
 
     # Calculate statistics for each group
     aggregated_results = []
-    for (var_value, density), velocities in grouped_results.items():
-        velocities = np.array(velocities)
+    for (var_value, density, rotary_method), group_data in grouped_results.items():
+        velocities = np.array(group_data["velocities"])
         n = len(velocities)
+        n_gridlocked = group_data["gridlocked"]
+
+        if n_gridlocked > 0:
+            print(
+                f"Warning: {n_gridlocked}/{n} simulations gridlocked for {var_name}={var_value}, "
+                f"density={density:.2f}, rotary_method={rotary_method}"
+            )
 
         # Basic statistics
         mean_velocity = np.mean(velocities)
@@ -290,13 +393,13 @@ def aggregate_results(raw_results: list, experiment_type: str = "road_length") -
             # Standard error of the mean
             std_error = std_velocity / np.sqrt(n)
 
-            # Normality test (if enough samples)
-            if n >= 3:
+            # Skip normality test if all values are identical
+            if n >= 3 and not np.allclose(velocities, velocities[0]):
                 _, normality_test_p = stats.shapiro(velocities)
                 if normality_test_p < 0.05:
                     print(
                         f"Warning: Non-normal distribution detected for {var_name}={var_value}, "
-                        f"density={density:.2f} (p={normality_test_p:.4f})"
+                        f"density={density:.2f}, rotary_method={rotary_method} (p={normality_test_p:.4f})"
                     )
             else:
                 normality_test_p = None
@@ -317,12 +420,14 @@ def aggregate_results(raw_results: list, experiment_type: str = "road_length") -
         result_dict = {
             var_name: var_value,
             "density": density,
+            "rotary_method": rotary_method,
             "velocity": mean_velocity,
             "std": std_velocity,
             "std_error": std_error,
             "ci_lower": ci_lower,
             "ci_upper": ci_upper,
             "n_samples": n,
+            "n_gridlocked": n_gridlocked,
         }
         if normality_test_p is not None:
             result_dict["normality_p_value"] = normality_test_p
@@ -349,32 +454,32 @@ def save_results_generic(
     - formatted_results (dict): The formatted results for plotting.
     """
     # Get timestamp in ddmmhhmm format
-    timestamp = time.strftime("%d%m%H%M")
+    timestamp = time.strftime("%d%m_%H%M")
 
-    # Determine file paths based on experiment type
+    # Determine base paths based on experiment type
     if experiment_type == "road_length":
         base_path = "data/road_length"
-        csv_file = f"simulation_results_{timestamp}.csv"
         var_name = "road_length"
     elif experiment_type == "speed_compliance":
         base_path = "data/speed_compliance"
-        csv_file = f"speed_simulation_results_{timestamp}.csv"
         var_name = "speed_percentage"
     elif experiment_type == "max_speed":
         base_path = "data/max_speed"
-        csv_file = f"maxspeed_simulation_results_{timestamp}.csv"
         var_name = "max_speed"
     else:
         raise ValueError(f"Unknown experiment type: {experiment_type}")
 
-    # Create directory if it doesn't exist
-    os.makedirs(base_path, exist_ok=True)
+    # Create subdirectories for different file types
+    csv_path = f"{base_path}/csv"
+    json_path = f"{base_path}/json"
+    os.makedirs(csv_path, exist_ok=True)
+    os.makedirs(json_path, exist_ok=True)
 
     # Save to CSV
     df = pd.DataFrame(results)
-    df.to_csv(f"{base_path}/{csv_file}", index=False)
+    df.to_csv(f"{csv_path}/results_{timestamp}.csv", index=False)
 
-    # Convert results to the format expected by create_analysis_plots
+    # Format results for plotting
     formatted_results = {
         val: {
             "densities": [],
@@ -420,7 +525,7 @@ def save_results_generic(
         },
     }
 
-    with open(f"{base_path}/results_{timestamp}.json", "w") as f:
+    with open(f"{json_path}/results_{timestamp}.json", "w") as f:
         json.dump(json_results, f, indent=4)
 
     return formatted_results
@@ -432,6 +537,8 @@ def create_analysis_plots_generic(
     experiment_type: str = "road_length",
     log_scale: bool = False,
     rotary_method: int = FREE_MOVEMENT,
+    n_simulations: int = 1,
+    steady_state_fraction: float = 1.0,
 ):
     """
     Generic function to create analysis plots for all experiment types.
@@ -443,6 +550,8 @@ def create_analysis_plots_generic(
     - experiment_type (str): The type of experiment (road_length, speed_compliance, or max_speed). Default is "road_length".
     - log_scale (bool): Whether to create log-log plots in addition to normal plots. Default is False.
     - rotary_method (str): The rotary method used in the simulation (FREE_MOVEMENT or FIXED_DESTINATION). Default is FREE_MOVEMENT.
+    - n_simulations (int): Number of simulations per parameter combination. Default is 1.
+    - steady_state_fraction (float): Fraction of steps to use for steady state calculation. Default is 1.0.
     """
     # Get timestamp in ddmmhhmm format
     timestamp = time.strftime("%d%m%H%M")
@@ -452,24 +561,29 @@ def create_analysis_plots_generic(
         base_path = "data/road_length"
         label_prefix = "Road Length"
         title = "Effect of Road Length on Speed vs Density"
+        param_str = f"roads_{len(variable_values)}"
     elif experiment_type == "speed_compliance":
         base_path = "data/speed_compliance"
         label_prefix = "Speed Compliance"
         title = "Effect of Speed Limit Compliance on Speed vs Density"
+        param_str = f"speeds_{len(variable_values)}"
     elif experiment_type == "max_speed":
         base_path = "data/max_speed"
         label_prefix = "Max Speed"
         title = "Effect of Maximum Speed Limit on Speed vs Density"
+        param_str = f"speeds_{len(variable_values)}"
     else:
         raise ValueError(f"Unknown experiment type: {experiment_type}")
 
-    # Create rotary method label
+    # Create rotary method label and short version for filename
     rotary_label = (
         "Free Movement" if rotary_method == FREE_MOVEMENT else "Fixed Destination"
     )
+    rotary_short = "free" if rotary_method == FREE_MOVEMENT else "fixed"
 
-    # Create directory if it doesn't exist
-    os.makedirs(base_path, exist_ok=True)
+    # Create plots directory
+    plots_path = f"{base_path}/plots"
+    os.makedirs(plots_path, exist_ok=True)
 
     # Create both normal and log-scale plots
     plot_types = ["normal"]
@@ -478,39 +592,93 @@ def create_analysis_plots_generic(
 
     for plot_type in plot_types:
         plt.figure(figsize=(10, 7))
+        has_valid_data = False  # Track if we have any valid data to plot
 
         # Velocity vs Density plot with confidence intervals
         colors = plt.cm.tab10(np.linspace(0, 1, len(variable_values)))
         for val, color in zip(variable_values, colors):
             densities = np.array(results[val]["densities"]) * 100
             velocities = np.array(results[val]["velocities"])
-            ci_lower = np.array(results[val]["ci_lower"])
-            ci_upper = np.array(results[val]["ci_upper"])
+
+            # Only plot confidence intervals if we have multiple simulations
+            has_confidence = (
+                "ci_lower" in results[val]
+                and "ci_upper" in results[val]
+                and len(results[val]["ci_lower"]) > 0
+                and len(results[val]["ci_upper"]) > 0
+            )
+
+            # Find where velocity is non-zero (allowing for small numerical errors)
+            non_zero_mask = velocities > 0.001
+
+            # Always include the last point if we have any data
+            if len(densities) > 0:
+                non_zero_mask[-1] = True
+
+            # Only plot non-zero values
+            plot_densities = densities[non_zero_mask]
+            plot_velocities = velocities[non_zero_mask]
+
+            if len(plot_densities) == 0:
+                continue
+
+            # For log plots, ensure all values are positive
+            if plot_type == "log":
+                epsilon = 1e-10
+                plot_velocities = np.maximum(plot_velocities, epsilon)
+                plot_densities = np.maximum(plot_densities, epsilon)
 
             # Plot mean line with points
             plt.plot(
-                densities, velocities, "o-", color=color, label=f"{label_prefix} {val}"
+                plot_densities,
+                plot_velocities,
+                "o-",
+                color=color,
+                label=f"{label_prefix} {val}",
             )
+            has_valid_data = True
 
-            # Add confidence interval shading
-            plt.fill_between(densities, ci_lower, ci_upper, color=color, alpha=0.2)
+            # Add confidence interval shading only if we have multiple simulations
+            if has_confidence and n_simulations > 1:
+                ci_lower = np.array(results[val]["ci_lower"])[non_zero_mask]
+                ci_upper = np.array(results[val]["ci_upper"])[non_zero_mask]
+                if plot_type == "log":
+                    ci_lower = np.maximum(ci_lower, epsilon)
+                    ci_upper = np.maximum(ci_upper, epsilon)
+                plt.fill_between(
+                    plot_densities, ci_lower, ci_upper, color=color, alpha=0.2
+                )
+
+        if not has_valid_data:
+            plt.close()
+            continue
 
         plt.xlabel("Global Density (%)")
         plt.ylabel("Average Speed")
+        if plot_type != "log":
+            plt.ylim(0)
+            plt.xlim(0, 100)
         plt.grid(True, which="both", ls="-", alpha=0.2)
         plt.minorticks_on()
 
         if plot_type == "log":
             plt.xscale("log")
             plt.yscale("log")
-            plot_title = f"{title}\n(Log-Log Scale, with 95% Confidence Intervals, after 20% warmup)\nRotary Method: {rotary_label}"
-            filename = f"{base_path}/density_analysis_loglog_{timestamp}.png"
+            confidence_text = (
+                "with 95% Confidence Intervals" if n_simulations > 1 else ""
+            )
+            plot_title = f"{title}\n(Log-Log Scale{', ' + confidence_text if confidence_text else ''})\nRotary Method: {rotary_label}"
+            filename = f"{plots_path}/{timestamp}_{param_str}_{rotary_short}_loglog.png"
         else:
-            plot_title = f"{title}\n(with 95% Confidence Intervals, after 20% warmup)\nRotary Method: {rotary_label}"
-            filename = f"{base_path}/density_analysis_{timestamp}.png"
+            confidence_text = (
+                "with 95% Confidence Intervals" if n_simulations > 1 else ""
+            )
+            plot_title = f"{title}\n({confidence_text})\nRotary Method: {rotary_label}"
+            filename = f"{plots_path}/{timestamp}_{param_str}_{rotary_short}.png"
 
         plt.title(plot_title)
-        plt.legend()
+        if has_valid_data:
+            plt.legend()
         plt.tight_layout()
         plt.savefig(filename, dpi=300, bbox_inches="tight")
         plt.close()
@@ -536,6 +704,7 @@ def run_experiment_generic(
     n_simulations: int,
     steps: int,
     warmup_fraction: float,
+    steady_state_fraction: float,
     experiment_type: str = "road_length",
     log_scale: bool = False,
     **kwargs,
@@ -548,83 +717,144 @@ def run_experiment_generic(
     - n_simulations (int): Number of simulations per parameter combination.
     - steps (int): Number of steps per simulation.
     - warmup_fraction (float): Fraction of steps to use as warmup.
+    - steady_state_fraction (float): Fraction of steps to use for steady state calculation.
     - experiment_type (str): The type of experiment to run (road_length, speed_compliance, or max_speed).
     - log_scale (bool): Whether to create log-log plots in addition to normal plots. Default is False.
     - kwargs (dict): Additional keyword arguments for the experiment.
     """
     # Create parameter combinations based on experiment type
     params = []
+    raw_results = []  # Initialize raw_results list
     if experiment_type == "road_length":
-        for road_length, density in product(
-            kwargs["road_lengths"], kwargs["densities"]
-        ):
-            for sim_index in range(n_simulations):
-                params.append(
-                    (
-                        (
-                            road_length,
-                            density,
-                            steps,
-                            kwargs["lane_width"],
-                            kwargs["rotary_method"],
-                            sim_index,
-                        ),
-                        experiment_type,
-                    )
-                )
+        total_params = (
+            len(kwargs["road_lengths"]) * len(kwargs["densities"]) * n_simulations
+        )
         variable_values = kwargs["road_lengths"]
+        sorted_densities = sorted(kwargs["densities"])
+        param_iter = kwargs["road_lengths"]
+        param_name = "road length"
     elif experiment_type == "speed_compliance":
-        for density, speed in product(kwargs["densities"], kwargs["speed_percentages"]):
-            for sim_index in range(n_simulations):
-                params.append(
-                    (
-                        (
-                            density,
-                            speed,
-                            steps,
-                            kwargs["road_length"],
-                            kwargs["lane_width"],
-                            kwargs["rotary_method"],
-                            sim_index,
-                        ),
-                        experiment_type,
-                    )
-                )
+        total_params = (
+            len(kwargs["speed_percentages"]) * len(kwargs["densities"]) * n_simulations
+        )
         variable_values = kwargs["speed_percentages"]
+        sorted_densities = sorted(kwargs["densities"])
+        param_iter = kwargs["speed_percentages"]
+        param_name = "speed compliance"
     elif experiment_type == "max_speed":
-        for speed, density in product(kwargs["max_speeds"], kwargs["densities"]):
-            for sim_index in range(n_simulations):
-                params.append(
-                    (
-                        (
-                            speed,
-                            density,
-                            steps,
-                            kwargs["road_length"],
-                            kwargs["rotary_method"],
-                            sim_index,
-                        ),
-                        experiment_type,
-                    )
-                )
+        total_params = (
+            len(kwargs["max_speeds"]) * len(kwargs["densities"]) * n_simulations
+        )
         variable_values = kwargs["max_speeds"]
+        sorted_densities = sorted(kwargs["densities"])
+        param_iter = kwargs["max_speeds"]
+        param_name = "max speed"
     else:
         raise ValueError(f"Unknown experiment type: {experiment_type}")
 
-    total_simulations = len(params)
-    print(f"Running {total_simulations} simulations in parallel...")
+    print(f"Running up to {total_params} simulations in parallel...")
     print(f"({n_simulations} simulations per parameter combination)")
     n_processes = max(1, mp.cpu_count() - 1)
     print(f"Using {n_processes} CPU cores")
 
-    # Run simulations in parallel with progress bar
-    with mp.Pool(n_processes) as pool:
-        raw_results = list(
-            tqdm(
-                pool.imap(run_single_simulation_with_type, params),
-                total=total_simulations,
-                desc="Running simulations",
-            )
+    # Create progress bar for all simulations
+    pbar = tqdm(total=total_params, desc="Running simulations")
+    skipped_count = 0
+
+    # Initialize gridlocked_states dictionary
+    gridlocked_states = {}
+
+    for param in param_iter:
+        gridlocked_states[param] = False
+        for density in sorted_densities:
+            if gridlocked_states[param]:
+                print(
+                    f"\nSkipping density {density}% for {param_name} {param} as previous density was gridlocked"
+                )
+                skipped_count += n_simulations
+                pbar.update(n_simulations)
+                continue
+
+            # Create parameters for this density level
+            params = []
+            for sim_index in range(n_simulations):
+                if experiment_type == "road_length":
+                    params.append(
+                        (
+                            (
+                                param,
+                                density,
+                                steps,
+                                kwargs["lane_width"],
+                                kwargs["rotary_method"],
+                                sim_index,
+                                steady_state_fraction,
+                            ),
+                            experiment_type,
+                        )
+                    )
+                elif experiment_type == "speed_compliance":
+                    params.append(
+                        (
+                            (
+                                density,
+                                param,
+                                steps,
+                                kwargs["road_length"],
+                                kwargs["lane_width"],
+                                kwargs["rotary_method"],
+                                sim_index,
+                                steady_state_fraction,
+                            ),
+                            experiment_type,
+                        )
+                    )
+                else:  # max_speed
+                    params.append(
+                        (
+                            (
+                                param,
+                                density,
+                                steps,
+                                kwargs["road_length"],
+                                kwargs["rotary_method"],
+                                sim_index,
+                                steady_state_fraction,
+                            ),
+                            experiment_type,
+                        )
+                    )
+
+            # Run simulations for this density level
+            with mp.Pool(n_processes) as pool:
+                batch_results = list(pool.imap(run_single_simulation_with_type, params))
+            raw_results.extend(batch_results)
+            pbar.update(n_simulations)
+
+            # Check if all simulations at this density level resulted in very low velocities
+            # Look at both the average velocity and the maximum velocity achieved in any simulation
+            avg_velocities = [r["velocity"] for r in batch_results]
+            overall_avg_velocity = np.mean(avg_velocities)
+            max_avg_velocity = np.max(avg_velocities)  # Maximum of the averages
+
+            # Only consider it gridlocked if both the overall average and maximum average velocities are very low
+            if overall_avg_velocity < 0.001:
+                gridlocked_states[param] = True
+                remaining_densities = len([d for d in sorted_densities if d > density])
+                skipped_count += remaining_densities * n_simulations
+                print(
+                    f"\nGridlock detected at density {density}% for {param_name} {param}. "
+                    f"Overall average velocity: {overall_avg_velocity:.6f}, "
+                    f"Maximum average velocity: {max_avg_velocity:.6f}"
+                )
+                print(f"Skipping {remaining_densities} higher densities.")
+                break  # Skip to next parameter
+
+    pbar.close()
+    if skipped_count > 0:
+        print(f"\nSkipped {skipped_count} simulations due to gridlock detection")
+        print(
+            f"Actually ran {len(raw_results)} out of {total_params} possible simulations"
         )
 
     # Aggregate results across simulations
@@ -638,6 +868,8 @@ def run_experiment_generic(
         experiment_type,
         log_scale=log_scale,
         rotary_method=kwargs["rotary_method"],
+        n_simulations=n_simulations,
+        steady_state_fraction=steady_state_fraction,
     )
 
 
@@ -645,6 +877,7 @@ def run_experiment(
     n_simulations: int,
     steps: int,
     warmup_fraction: float,
+    steady_state_fraction: float,
     lane_width: int,
     road_lengths: list,
     densities: list,
@@ -659,6 +892,7 @@ def run_experiment(
     - n_simulations (int): Number of simulations per parameter combination.
     - steps (int): Number of steps per simulation.
     - warmup_fraction (float): Fraction of steps to use as warmup.
+    - steady_state_fraction (float): Fraction of steps to use for steady state calculation.
     - lane_width (int): Width of each lane.
     - road_lengths (list): List of road lengths to test.
     - densities (list): List of densities to test.
@@ -669,6 +903,7 @@ def run_experiment(
         n_simulations=n_simulations,
         steps=steps,
         warmup_fraction=warmup_fraction,
+        steady_state_fraction=steady_state_fraction,
         experiment_type="road_length",
         lane_width=lane_width,
         road_lengths=road_lengths,
@@ -682,6 +917,7 @@ def run_speed_experiment(
     n_simulations: int,
     steps: int,
     warmup_fraction: float,
+    steady_state_fraction: float,
     lane_width: int,
     road_length: int,
     speed_percentages: list,
@@ -697,6 +933,7 @@ def run_speed_experiment(
     - n_simulations (int): Number of simulations per parameter combination.
     - steps (int): Number of steps per simulation.
     - warmup_fraction (float): Fraction of steps to use as warmup.
+    - steady_state_fraction (float): Fraction of steps to use for steady state calculation.
     - lane_width (int): Width of each lane.
     - road_length (int): Length of the road.
     - speed_percentages (list): List of speed percentages to test.
@@ -708,6 +945,7 @@ def run_speed_experiment(
         n_simulations=n_simulations,
         steps=steps,
         warmup_fraction=warmup_fraction,
+        steady_state_fraction=steady_state_fraction,
         experiment_type="speed_compliance",
         lane_width=lane_width,
         road_length=road_length,
@@ -722,6 +960,7 @@ def run_maxspeed_experiment(
     n_simulations: int,
     steps: int,
     warmup_fraction: float,
+    steady_state_fraction: float,
     lane_width: int,
     road_length: int,
     max_speeds: list,
@@ -737,6 +976,7 @@ def run_maxspeed_experiment(
     - n_simulations (int): Number of simulations per parameter combination.
     - steps (int): Number of steps per simulation.
     - warmup_fraction (float): Fraction of steps to use as warmup.
+    - steady_state_fraction (float): Fraction of steps to use for steady state calculation.
     - lane_width (int): Width of each lane.
     - road_length (int): Length of the road.
     - max_speeds (list): List of maximum speeds to test.
@@ -748,6 +988,7 @@ def run_maxspeed_experiment(
         n_simulations=n_simulations,
         steps=steps,
         warmup_fraction=warmup_fraction,
+        steady_state_fraction=steady_state_fraction,
         experiment_type="max_speed",
         lane_width=lane_width,
         road_length=road_length,

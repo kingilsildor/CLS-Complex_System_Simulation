@@ -1,0 +1,132 @@
+{
+    "16": {
+        "densities": [
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5
+        ],
+        "velocities": [
+            NaN,
+            NaN,
+            NaN,
+            NaN,
+            0.0
+        ],
+        "ci_lower": [
+            NaN,
+            NaN,
+            NaN,
+            NaN,
+            0.0
+        ],
+        "ci_upper": [
+            NaN,
+            NaN,
+            NaN,
+            NaN,
+            0.0
+        ],
+        "std_error": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ]
+    },
+    "64": {
+        "densities": [
+            0.1,
+            0.2,
+            0.3
+        ],
+        "velocities": [
+            NaN,
+            NaN,
+            0.0
+        ],
+        "ci_lower": [
+            NaN,
+            NaN,
+            0.0
+        ],
+        "ci_upper": [
+            NaN,
+            NaN,
+            0.0
+        ],
+        "std_error": [
+            0.0,
+            0.0,
+            0.0
+        ]
+    },
+    "128": {
+        "densities": [
+            0.1,
+            0.2,
+            0.3
+        ],
+        "velocities": [
+            NaN,
+            NaN,
+            0.0
+        ],
+        "ci_lower": [
+            NaN,
+            NaN,
+            0.0
+        ],
+        "ci_upper": [
+            NaN,
+            NaN,
+            0.0
+        ],
+        "std_error": [
+            0.0,
+            0.0,
+            0.0
+        ]
+    },
+    "256": {
+        "densities": [
+            0.1,
+            0.2
+        ],
+        "velocities": [
+            NaN,
+            0.0
+        ],
+        "ci_lower": [
+            NaN,
+            0.0
+        ],
+        "ci_upper": [
+            NaN,
+            0.0
+        ],
+        "std_error": [
+            0.0,
+            0.0
+        ]
+    },
+    "metadata": {
+        "timestamp": "3001_1734",
+        "experiment_type": "road_length",
+        "n_variables": 4,
+        "variable_values": [
+            16,
+            64,
+            128,
+            256
+        ],
+        "statistical_info": {
+            "confidence_level": 0.95,
+            "ci_method": "t-distribution",
+            "normality_test": "Shapiro-Wilk",
+            "normality_alpha": 0.05
+        }
+    }
+}

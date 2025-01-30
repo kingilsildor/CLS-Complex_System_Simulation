@@ -1,0 +1,2 @@
+road_length,density,velocity,std,std_error,ci_lower,ci_upper,n_samples
+8,0.3,0.4920623836126629,0,0,0.4920623836126629,0.4920623836126629,1
