@@ -16,15 +16,19 @@ from src.simulation import Simulation_2D_NoUI
 from src.utils import FIXED_DESTINATION, FREE_MOVEMENT
 
 
-def get_experiment_config():
+def get_experiment_config() -> dict:
     """
     Central configuration for all experiments.
     Modify this function to control which experiments to run and their parameters.
+
+    Returns:
+    --------
+    - config (dict): A dictionary containing all experiment parameters.
     """
     config = {
         # Global parameters
         "n_simulations": 5,  # Number of simulations per parameter combination
-        "steps": 200,  # Steps per simulation
+        "steps": 1000,  # Steps per simulation
         "lane_width": 2,
         "warmup_fraction": 0.2,  # Fraction of steps to use as warmup
         "log_scale": True,  # Whether to create log-log plots in addition to normal plots
@@ -64,7 +68,10 @@ def get_experiment_config():
 
 
 def run_all_experiments():
-    """Run all configured experiments."""
+    """
+    Run all configured experiments.
+    This function is the main entry point for running all experiments.
+    """
     config = get_experiment_config()
 
     if config["run_road_length"]:
@@ -104,10 +111,19 @@ def run_all_experiments():
         )
 
 
-def calculate_grid_size(road_length):
-    """Calculate appropriate grid size for a given road length.
+def calculate_grid_size(road_length: int) -> int:
+    """
+    Calculate appropriate grid size for a given road length.
     We want enough roads for meaningful results, but not too many to keep simulation fast.
     Grid size is scaled more aggressively for very small road lengths.
+
+    Params:
+    ------
+    - road_length (int): The length of the road.
+
+    Returns:
+    -------
+    - grid_size (int): The size of the grid.
     """
     if road_length <= 8:
         # For very small roads, use fewer roads to keep grid size reasonable
@@ -124,8 +140,22 @@ def calculate_grid_size(road_length):
     return grid_size
 
 
-def run_single_simulation_generic(params, experiment_type="road_length"):
-    """Generic simulation runner for all experiment types."""
+def run_single_simulation_generic(
+    params: tuple, experiment_type: str = "road_length"
+) -> dict:
+    """
+    Generic simulation runner for all experiment types.
+    This function is used to run a single simulation with given parameters.
+
+    Params:
+    ------
+    - params (tuple): The parameters for the simulation.
+    - experiment_type (str): The type of experiment to run. Default is "road_length".
+
+    Returns:
+    -------
+    - result (dict): The results of the simulation.
+    """
     if experiment_type == "road_length":
         road_length, density_percentage, steps, lane_width, rotary_method, sim_index = (
             params
@@ -207,10 +237,19 @@ def run_single_simulation_generic(params, experiment_type="road_length"):
     return result
 
 
-def aggregate_results(raw_results, experiment_type="road_length"):
+def aggregate_results(raw_results: list, experiment_type: str = "road_length") -> list:
     """
     Aggregate results from multiple simulations for each parameter combination.
     Performs statistical analysis including normality tests and confidence intervals.
+
+    Params:
+    ------
+    - raw_results (list): The raw results from all simulations.
+    - experiment_type (str): The type of experiment to aggregate results for. Default is "road_length".
+
+    Returns:
+    -------
+    - aggregated_results (list): The aggregated results with statistical information.
     """
     # Determine the variable name based on experiment type
     if experiment_type == "road_length":
@@ -293,8 +332,22 @@ def aggregate_results(raw_results, experiment_type="road_length"):
     return aggregated_results
 
 
-def save_results_generic(results, variable_values, experiment_type="road_length"):
-    """Generic function to save results for all experiment types."""
+def save_results_generic(
+    results: list, variable_values: list, experiment_type: str = "road_length"
+) -> dict:
+    """
+    Generic function to save results for all experiment types.
+
+    Params:
+    ------
+    - results (list): The aggregated results to save.
+    - variable_values (list): The values of the variable being tested.
+    - experiment_type (str): The type of experiment (road_length, speed_compliance, or max_speed). Default is "road_length".
+
+    Returns:
+    -------
+    - formatted_results (dict): The formatted results for plotting.
+    """
     # Get timestamp in ddmmhhmm format
     timestamp = time.strftime("%d%m%H%M")
 
@@ -374,27 +427,22 @@ def save_results_generic(results, variable_values, experiment_type="road_length"
 
 
 def create_analysis_plots_generic(
-    results,
-    variable_values,
-    experiment_type="road_length",
-    log_scale=False,
-    rotary_method=FREE_MOVEMENT,
+    results: dict,
+    variable_values: list,
+    experiment_type: str = "road_length",
+    log_scale: bool = False,
+    rotary_method: int = FREE_MOVEMENT,
 ):
     """
     Generic function to create analysis plots for all experiment types.
 
-    Parameters:
+    Params:
     -----------
-    results : dict
-        The results to plot
-    variable_values : list
-        The values of the variable being tested
-    experiment_type : str
-        The type of experiment (road_length, speed_compliance, or max_speed)
-    log_scale : bool
-        Whether to create an additional plot with log-log axes
-    rotary_method : int
-        The rotary method used (FREE_MOVEMENT or FIXED_DESTINATION)
+    - results (dict): The formatted results for plotting.
+    - variable_values (list): The values of the variable being tested.
+    - experiment_type (str): The type of experiment (road_length, speed_compliance, or max_speed). Default is "road_length".
+    - log_scale (bool): Whether to create log-log plots in addition to normal plots. Default is False.
+    - rotary_method (str): The rotary method used in the simulation (FREE_MOVEMENT or FIXED_DESTINATION). Default is FREE_MOVEMENT.
     """
     # Get timestamp in ddmmhhmm format
     timestamp = time.strftime("%d%m%H%M")
@@ -468,21 +516,42 @@ def create_analysis_plots_generic(
         plt.close()
 
 
-def run_single_simulation_with_type(args):
-    """Wrapper function to unpack arguments for multiprocessing."""
+def run_single_simulation_with_type(args: tuple) -> dict:
+    """
+    Wrapper function to unpack arguments for multiprocessing.
+
+    Params:
+    -------
+    - args (tuple): A tuple containing the parameters and experiment type.
+
+    Returns:
+    --------
+    - result (dict): The results of the simulation.
+    """
     params, experiment_type = args
     return run_single_simulation_generic(params, experiment_type)
 
 
 def run_experiment_generic(
-    n_simulations,
-    steps,
-    warmup_fraction,
-    experiment_type="road_length",
-    log_scale=False,
+    n_simulations: int,
+    steps: int,
+    warmup_fraction: float,
+    experiment_type: str = "road_length",
+    log_scale: bool = False,
     **kwargs,
 ):
-    """Generic function to run any type of experiment."""
+    """
+    Generic function to run any type of experiment.
+
+    Params:
+    -------
+    - n_simulations (int): Number of simulations per parameter combination.
+    - steps (int): Number of steps per simulation.
+    - warmup_fraction (float): Fraction of steps to use as warmup.
+    - experiment_type (str): The type of experiment to run (road_length, speed_compliance, or max_speed).
+    - log_scale (bool): Whether to create log-log plots in addition to normal plots. Default is False.
+    - kwargs (dict): Additional keyword arguments for the experiment.
+    """
     # Create parameter combinations based on experiment type
     params = []
     if experiment_type == "road_length":
@@ -573,16 +642,29 @@ def run_experiment_generic(
 
 
 def run_experiment(
-    n_simulations,
-    steps,
-    warmup_fraction,
-    lane_width,
-    road_lengths,
-    densities,
-    log_scale=False,
-    rotary_method=FREE_MOVEMENT,
+    n_simulations: int,
+    steps: int,
+    warmup_fraction: float,
+    lane_width: int,
+    road_lengths: list,
+    densities: list,
+    log_scale: bool = False,
+    rotary_method: int = FREE_MOVEMENT,
 ):
-    """Run the road length experiment."""
+    """
+    Run the road length experiment.
+
+    Params:
+    -------
+    - n_simulations (int): Number of simulations per parameter combination.
+    - steps (int): Number of steps per simulation.
+    - warmup_fraction (float): Fraction of steps to use as warmup.
+    - lane_width (int): Width of each lane.
+    - road_lengths (list): List of road lengths to test.
+    - densities (list): List of densities to test.
+    - log_scale (bool): Whether to create log-log plots in addition to normal plots. Default is False.
+    - rotary_method (str): The rotary method used in the simulation (FREE_MOVEMENT or FIXED_DESTINATION). Default is FREE_MOVEMENT.
+    """
     run_experiment_generic(
         n_simulations=n_simulations,
         steps=steps,
@@ -597,17 +679,31 @@ def run_experiment(
 
 
 def run_speed_experiment(
-    n_simulations,
-    steps,
-    warmup_fraction,
-    lane_width,
-    road_length,
-    speed_percentages,
-    densities,
-    log_scale=False,
-    rotary_method=FREE_MOVEMENT,
+    n_simulations: int,
+    steps: int,
+    warmup_fraction: float,
+    lane_width: int,
+    road_length: int,
+    speed_percentages: list,
+    densities: list,
+    log_scale: bool = False,
+    rotary_method: int = FREE_MOVEMENT,
 ):
-    """Run the speed compliance experiment."""
+    """
+    Run the speed compliance experiment.
+
+    Params:
+    -------
+    - n_simulations (int): Number of simulations per parameter combination.
+    - steps (int): Number of steps per simulation.
+    - warmup_fraction (float): Fraction of steps to use as warmup.
+    - lane_width (int): Width of each lane.
+    - road_length (int): Length of the road.
+    - speed_percentages (list): List of speed percentages to test.
+    - densities (list): List of densities to test.
+    - log_scale (bool): Whether to create log-log plots in addition to normal plots. Default is False.
+    - rotary_method (str): The rotary method used in the simulation (FREE_MOVEMENT or FIXED_DESTINATION). Default is FREE_MOVEMENT.
+    """
     run_experiment_generic(
         n_simulations=n_simulations,
         steps=steps,
@@ -623,17 +719,31 @@ def run_speed_experiment(
 
 
 def run_maxspeed_experiment(
-    n_simulations,
-    steps,
-    warmup_fraction,
-    lane_width,
-    road_length,
-    max_speeds,
-    densities,
-    log_scale=False,
-    rotary_method=FREE_MOVEMENT,
+    n_simulations: int,
+    steps: int,
+    warmup_fraction: float,
+    lane_width: int,
+    road_length: int,
+    max_speeds: list,
+    densities: list,
+    log_scale: bool = False,
+    rotary_method: int = FREE_MOVEMENT,
 ):
-    """Run the maximum speed experiment."""
+    """
+    Run the maximum speed experiment.
+
+    Params:
+    -------
+    - n_simulations (int): Number of simulations per parameter combination.
+    - steps (int): Number of steps per simulation.
+    - warmup_fraction (float): Fraction of steps to use as warmup.
+    - lane_width (int): Width of each lane.
+    - road_length (int): Length of the road.
+    - max_speeds (list): List of maximum speeds to test.
+    - densities (list): List of densities to test.
+    - log_scale (bool): Whether to create log-log plots in addition to normal plots. Default is False.
+    - rotary_method (str): The rotary method used in the simulation (FREE_MOVEMENT or FIXED_DESTINATION). Default is FREE_MOVEMENT.
+    """
     run_experiment_generic(
         n_simulations=n_simulations,
         steps=steps,
