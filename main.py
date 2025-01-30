@@ -7,6 +7,8 @@ from src.simulation import (
 )
 from src.utils import FIXED_DESTINATION, FREE_MOVEMENT
 
+from src.experiment import run_all_experiments
+
 
 def run_2D_NoUI_simulation():
     root = tk.Tk()
@@ -41,5 +43,6 @@ def run_2D_UI_simulation():
 
 if __name__ == "__main__":
     # run_2D_NoUI_simulation()
-    run_2D_UI_simulation()
+    # run_2D_UI_simulation()
     # run_1D_simulation()
+    run_all_experiments()
