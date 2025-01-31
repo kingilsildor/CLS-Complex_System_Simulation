@@ -7,6 +7,8 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+import random
+
 from src.car import Car
 from src.density import DensityTracker
 from src.grid import Grid
@@ -230,6 +232,26 @@ class Simulation(ABC):
 
 
 class Simulation_1D(Simulation):
+
+    def generate_density_vs_speed_data(length, max_speed, randomization, time_steps): # function for plotting density vs speed across simulations
+
+        #set random seed
+        np.random.seed(42)
+
+        densities = []
+        avg_speeds = []
+        for num_cars in range(1, length + 1):  # Cover the full range of densities
+            model = NagelSchreckenberg(length, num_cars, max_speed, randomization)
+            total_speed = 0
+            for _ in range(time_steps):
+                model.update()
+                total_speed += model.total_speed
+            avg_speed = total_speed / (time_steps * num_cars)
+            density = num_cars / length
+            densities.append(density)
+            avg_speeds.append(avg_speed)
+        return densities, avg_speeds
+
     def __init__(self, root, seed=42):
         """
         Initialize the 1D traffic simulation.
