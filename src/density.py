@@ -15,10 +15,9 @@ class DensityTracker:
         """
         Initialize the tracker.
 
-        Parameters:
-        -----------
-        grid : Grid
-            The grid object containing the traffic simulation
+        Params:
+        -------
+        - grid (Grid): The grid object representing the city.
         """
         self.grid = grid
         self.car_wait_times = {}  # Maps car to its current waiting time
@@ -29,10 +28,9 @@ class DensityTracker:
         """
         Update metrics for this time step.
 
-        Parameters:
+        Params:
         -----------
-        moved_distances : set
-            Set of distances moved by each car (max_speed, 1, or 0)
+        - moved_distances (set): Set of distances moved by each car (max_speed, 1, or 0).
         """
         # Calculate current metrics
         metrics = self.get_metrics(moved_distances)
@@ -44,14 +42,13 @@ class DensityTracker:
         """
         Calculate current traffic metrics.
 
-        Parameters:
+        Params:
         -----------
-        moved_distances : set
-            Set of distances moved by each car (max_speed, 1, or 0)
+        - moved_distances (set): Set of distances moved by each car (max_speed, 1, or 0).
 
         Returns:
         --------
-        dict : Dictionary containing traffic metrics
+        - metrics (dict): Dictionary of traffic metrics.
         """
         # Count cars on roads and intersections
         cars_on_roads = 0
@@ -99,6 +96,8 @@ class DensityTracker:
         }
 
     def set_initial_cars(self):
-        """Set the initial number of cars for percentage calculation."""
+        """
+        Set the initial number of cars for percentage calculation.
+        """
         car_positions = np.where(self.grid.grid == CAR_HEAD)
         self.initial_cars = len(car_positions[0])

@@ -5,9 +5,9 @@ from src.utils import (
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_DRIVE,
+    ROAD_CELLS,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
-    ROAD_CELLS,
 )
 
 temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
@@ -21,7 +21,9 @@ class Grid:
     Cars can be added to the grid and their movements updated dynamically.
     """
 
-    def __init__(self, grid_size: int, blocks_size: int, max_speed: int = 2):
+    def __init__(
+        self, grid_size: int, blocks_size: int, rotary_method: int, max_speed: int = 2
+    ):
         """
         Initialize the grid with a given size, block size, and lane width.
 
@@ -29,7 +31,8 @@ class Grid:
         -------
         - grid_size (int): The size of the grid (NxN).
         - blocks_size (int): The size of blocks between roads.
-        - max_speed (int): The maximum speed of cars on the grid.
+        - rotary_method (int): The method used to handle rotaries.
+        - max_speed (int): The maximum speed of cars on the grid. Default is 2.
         """
         self.grid = np.full((grid_size, grid_size), BLOCKS_VALUE, dtype=int)
         self.underlying_grid = np.full(
@@ -37,6 +40,7 @@ class Grid:
         )  # Track original cell types
         self.size = grid_size
         self.blocks = blocks_size
+        self.rotary_method = rotary_method
         self.lane_width = 2
 
         self.cars = []
@@ -65,7 +69,6 @@ class Grid:
         self.create_vertical_lanes()
         self.create_horizontal_lanes()
         self.create_intersections()
-        # self.create_edge_lanes()
 
     def create_edge_lanes(self):
         """
@@ -158,8 +161,8 @@ class Grid:
         --------
         set: A set of distances moved by cars
         """
-        moved_distances = []
-        for car in self.cars:
+        moved_distances = np.zeros(len(self.cars), dtype=int)
+        for id, car in enumerate(self.cars):
             distance = car.move()
-            moved_distances.append(distance)
+            moved_distances[id] = distance
         return moved_distances

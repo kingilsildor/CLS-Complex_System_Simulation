@@ -1,15 +1,15 @@
-from car import Car
-from grid import Grid
 import numpy as np
 
+from car import Car
+from grid import Grid
 from utils import (
     CAR_HEAD,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_CELLS,
+    INTERSECTION_DRIVE,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
-    INTERSECTION_DRIVE,
 )
 
 """
@@ -164,13 +164,17 @@ lane_width = 2
 
 
 def test_grid_initialization():
-    """Test if the grid initializes correctly with the specified dimensions."""
+    """
+    Test if the grid initializes correctly with the specified dimensions.
+    """
     grid = Grid(grid_size, block_size, lane_width)
     assert grid.grid.shape == (grid_size, grid_size), "Grid size mismatch."
 
 
 def test_create_vertical_lanes():
-    """Test if vertical lanes are created correctly."""
+    """
+    Test if vertical lanes are created correctly.
+    """
     grid = Grid(grid_size, block_size, lane_width)
     grid.create_vertical_lanes()
     vertical_lanes = grid.grid[:, block_size // 2 : block_size // 2 + lane_width]
@@ -183,7 +187,9 @@ def test_create_vertical_lanes():
 
 
 def test_create_horizontal_lanes():
-    """Test if horizontal lanes are created correctly."""
+    """
+    Test if horizontal lanes are created correctly.
+    """
     grid = Grid(grid_size, block_size, lane_width)
     grid.create_horizontal_lanes()
     horizontal_lanes = grid.grid[block_size // 2 : block_size // 2 + lane_width, :]
@@ -196,7 +202,9 @@ def test_create_horizontal_lanes():
 
 
 def test_create_intersections():
-    """Test if intersections are created correctly."""
+    """
+    Test if intersections are created correctly.
+    """
     grid = Grid(grid_size, block_size, lane_width)
     grid.create_intersections()
     intersections = grid.grid[
@@ -209,7 +217,9 @@ def test_create_intersections():
 
 
 def test_roads_combined():
-    """Test if all roads are created correctly together."""
+    """
+    Test if all roads are created correctly together.
+    """
     grid = Grid(grid_size, block_size, lane_width)
     grid.roads()
     vertical_lanes = grid.grid[:, block_size // 2 : block_size // 2 + lane_width]
@@ -237,7 +247,9 @@ def test_roads_combined():
 
 
 def test_add_cars():
-    """Test if cars can be added to the grid."""
+    """
+    Test if cars can be added to the grid.
+    """
     grid = Grid(grid_size, block_size, lane_width)
 
     class MockCar:
@@ -257,7 +269,9 @@ def test_add_cars():
 
 
 def test_update_movement():
-    """Test if the grid updates car movements."""
+    """
+    Test if the grid updates car movements.
+    """
     grid = Grid(grid_size, block_size, lane_width)
 
     class MockCar:
