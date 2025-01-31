@@ -1,12 +1,12 @@
 # Car Density Analysis Using Cellular Automata 🚗🏙️
 Within this repository we explore how a cellular automata can be used to model and analyze car density in urban environments.
-By simulating traffic on Manhattan-style grids, we compare 1D and 2D road networks and investigate how various parameters influence traffic flow and congestion.  
+By simulating traffic on Manhattan-style grids, we compare 1D and 2D road networks and investigate how various parameters influence traffic flow and congestion.
 The 1D cellular automata models traffic based on the Nagel-Schreckenberg experiment. The simulation models traffic flow on a one-dimensional road using a set of simple rules that govern the movement of cars.
 
 ## Description
-Based on the research done by Chopard, Luthi & Queloz (1996), we looked at modelling traffic for urban environments. Here, we use **cellular automata** as a lightweight and flexible approach to simulate traffic behavior. Our simulations model cars moving through streets and intersections, taking into account factors like:  
+Based on the research done by Chopard, Luthi & Queloz (1996), we looked at modelling traffic for urban environments. Here, we use **cellular automata** as a lightweight and flexible approach to simulate traffic behavior. Our simulations model cars moving through streets and intersections, taking into account factors like:
 
-- **Grid structure**: Linear 1D roads vs. interconnected 2D Manhattan grids.  
+- **Grid structure**: Linear 1D roads vs. interconnected 2D Manhattan grids.
 - **Road parameters**: 
     - Road size 
     - Speed limits
@@ -20,9 +20,13 @@ This study allows us to observe emergent behaviors such as traffic jams, flow bo
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+    - [UV](#uv)
+    - [Conda](#conda)
 - [Usage](#usage)
+- [Testing](#testing)
 - [File Descriptions](#file-descriptions)
 - [Contributors](#contributors)
+- [Git Fame](#git-fame)
 - [References](#references)
 - [Licence](#licence)
 
@@ -72,26 +76,25 @@ conda install --file requirements.txt
 
 ## Usage
 `main.py` is the main entry point for the simulation project. It can be run either with a graphical user interface (GUI) or in a headless (non-UI) mode.
+For calling the different functionalities within the program, one can best call the functions provided in the main file.
+The followings functions can be called:
 
+- `run_2D_NoUI_simulation`: This is the fastest way to run a simulation. For this the following parameters needs to be given:
+    1. `root (tk.Tk)`: The root window.
+    2. `max_iter (int)`: The maximum number of iterations.
+    3. `rotary_method (int)`: The method to use for rotaries.
+    4. `grid_size (int)`: The size of the grid.
+    5. `road_length (int)`: The length of the road.
+    6. `road_max_speed (int)`: The maximum speed of cars on the road.
+    7. `car_count (int)`: The number of cars to create.
+    8. `car_percentage_max_speed (int)`: The percentage of cars that will drive at the maximum speed.
+    9. `seed (int)`: The seed for random number generation. Default is 42.
+- `run_1D_simulation`: Run the simulation based on the Nagel Schreckenberg model.
+- `run_2D_UI_simulation`: Run the simulation for the 2D model inluding UI, to see the traffic behaviour visualy.
+- `run_all_experiments`: Run all the experiments to generate the plots that are used in the slides.
 
-1. The `show_ui` flag determines whether the simulation runs with or without a GUI:
-    - **`True` (default)**: Opens a GUI using Tkinter to visualize the simulation.
-    - **`False`**: Runs the simulation without a GUI and prints the grid states to the console for a specified number of steps.
-
-2. **Non-UI Mode**:  
-   If you set `show_ui` to `False`, the following parameters are passed to the simulation:
-   - `steps=100`: Number of simulation steps.
-   - `grid_size=15`: The size of the grid.
-   - `blocks_size=10`: The size of each grid block.
-   - `lane_width=2`: Width of lanes on the grid.
-   - `car_count=4`: Number of cars in the simulation.  
-   The resulting states of the grid will be printed to the console after each step and writen to `data/simulation.txt`.
-
-3. **UI Mode**:  
-   When `show_ui` is `True`, a Tkinter window will open, allowing you to interactively view the simulation.
-
-4. **Testing**:
-    The repository includes **pytest-based unit tests** to ensure the correctness of the core functionalities: These tests cover:
+## Testing
+The repository includes **pytest-based unit tests** to ensure the correctness of the core functionalities: These tests cover:
 - Grid initialization: Verifies that the grid is correctly set up with roads, intersections, and blocks
 - Road Creation: Ensures that vertical and horizontal roads are generated properly.
 - Car Behavior: Tests car movement, intersection handling, and rotary navigation.
@@ -101,23 +104,29 @@ To run all tests, make sure that the imports are changed in Car.py and Grid.py f
 ```zsh
 pytest test_simulation.py
 ```
+The file also included asserts and raise statements to make it so that only the right value will be given to functions.
 
 ## File description
+- **`data/.`**: Directory containing data files for the simulation.
+- **`data/road_length/.`**: Directory for storing road length data.
 - **`data/simulation.txt`**: A text file containing data results related to the simulation.
-- **`src/car.py`**: Contains logic and class definitions related to the car entities in the simulation.
-- **`src/density.py`**: Handles calculations or logic for density in the system.
-- **`src/grid.py`**: Manages grid-based operations and grid-related logic in the simulation.
-- **`src/simulation.py`**: Core simulation code, to control the different components.
-- **`src/utils.py`**: Utility functions used across the project for shared functionality.
-- **`src/test_simulation.py`**: Test cases for the Grid and Car classes.
-- **`main.py`**: The entry point of the project, to initiate the simulation.
-- **`requirements.txt`**: Lists Python dependencies required for the project.
+- **`slide/Complex Systems Simulation.pdf`**: PDF file of the presentation slides for the simulation project.
+- **`src/car.py`**: Defines the Car class and its behavior within the simulation.
+- **`src/density.py`**: Contains functions to calculate and manage density metrics in the simulation.
+- **`src/experiment.py`**: Script for running various simulation experiments.
+- **`src/grid.py`**: Implements the Grid class and associated grid operations for the simulation.
+- **`src/helper.py`**: Provides helper functions used across different modules.
+- **`src/nagel_schreckenberg.py`**: Implements the Nagel-Schreckenberg traffic model.
+- **`src/simulation.py`**: Coordinates the overall simulation process and integrates various components.
+- **`src/test_simulation.py`**: Includes unit tests for validating the functionality of the Grid and Car classes.
+- **`src/utils.py`**: Provides utility functions and helpers used throughout the simulation project.
+- **`main.py`**: The entry point of the project, to initiate the simulation. The different files will be called from here.
+- **`requirements.txt`**: Lists Python dependencies required for the project. Can be installed using `conda`.
 
 
 ## Contributors
-
 We planed on collaborating in most parts of the assignment. We made a Trello board to structure the tasks at hand, divide them into small tickets, and distribute the workload evenly. For the presentation and documentation, we have collaborated on all parts through longer meetings.
-
+For the presentation the work was also devided around the things we worked around.
 
 - **Max**: Created the 1D model and the necessary analytics for it.
 - **Koen**:
@@ -125,7 +134,24 @@ We planed on collaborating in most parts of the assignment. We made a Trello boa
 - **Tycho**: Worked on the boilerplates of the code base, such as the `Car`, `Grid` and `Simulation` classes. Handeled the repository and helped with bug fixing.
 
 All the commits can be found in main.
+The branches aren't being pruned to get an idea about how the project was structured.
 
+## Git Fame
+Total commits: 139
+Total ctimes: 1110
+Total files: 68
+Total loc: 32653
+| Author       |   loc |   coms |   fils |  distribution   |
+|:-------------|------:|-------:|-------:|:----------------|
+| kingilsildor | 21599 |     80 |     19 | 66.1/57.6/27.9  |
+| kbverlaan    | 10489 |     25 |     36 | 32.1/18.0/52.9  |
+| Bart Koedijk |   279 |     22 |      4 | 0.9/15.8/ 5.9   |
+| chappy-tm    |   252 |      2 |      7 | 0.8/ 1.4/10.3   |
+| Tycho Stam   |    21 |      6 |      1 | 0.1/ 4.3/ 1.5   |
+| brkoedijk    |    13 |      4 |      1 | 0.0/ 2.9/ 1.5   |
+
+- Tycho Stam -> kingilsildor
+- brkoedijk -> Bart Koedijk
 
 ## References
 Chopard, B., Luthi, P. O., & Queloz, P. A. (1996). Cellular automata model of car traffic in a two-dimensional street network. Journal of Physics A: Mathematical and General, 29(10), 2325.
