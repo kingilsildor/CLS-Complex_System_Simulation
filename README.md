@@ -119,7 +119,7 @@ pytest test_simulation.py
 We planed on collaborating in most parts of the assignment. We made a Trello board to structure the tasks at hand, divide them into small tickets, and distribute the workload evenly. For the presentation and documentation, we have collaborated on all parts through longer meetings.
 
 
-- **Max**:
+- **Max**: Created the 1D model and the necessary analytics for it.
 - **Koen**:
 - **Bart**: Worked on the Car logic in collaboration with Tycho and implemented the testing.
 - **Tycho**: Worked on the boilerplates of the code base, such as the `Car`, `Grid` and `Simulation` classes. Handeled the repository and helped with bug fixing.
