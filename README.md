@@ -123,6 +123,13 @@ The file also included asserts and raise statements to make it so that only the 
 - **`main.py`**: The entry point of the project, to initiate the simulation. The different files will be called from here.
 - **`requirements.txt`**: Lists Python dependencies required for the project. Can be installed using `conda`.
 
+### Tests
+- **`test_simulation.py`**: Unit tests for grid, car, and system behavior
+
+### Data and Configuration
+- **`data/`**: Experiment results (CSV, JSON) and visualizations
+- **`requirements.txt`**: Python package dependencies
+- **`main.py`**: Entry point with different simulation modes
 
 ## Contributors
 We planed on collaborating in most parts of the assignment. We made a Trello board to structure the tasks at hand, divide them into small tickets, and distribute the workload evenly. For the presentation and documentation, we have collaborated on all parts through longer meetings.
