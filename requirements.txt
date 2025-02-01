@@ -1,2 +1,6 @@
-numpy
-matplotlib
+numpy=2.2.2
+matplotlib=3.10.0
+pandas=2.2.3
+scipy=1.15.1
+tk
+tqdm=4.66.5

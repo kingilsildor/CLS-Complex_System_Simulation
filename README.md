@@ -91,7 +91,7 @@ conda install --file requirements.txt
    When `show_ui` is `True`, a Tkinter window will open, allowing you to interactively view the simulation.
 
 4. **Testing**:
-    The repository includes **pytest-based unit tests** to ensure the correctness of the core functionalities: These tests cover:
+    The repository includes **unit tests** to ensure the correctness of the core functionalities: These tests cover:
 - Grid initialization: Verifies that the grid is correctly set up with roads, intersections, and blocks
 - Road Creation: Ensures that vertical and horizontal roads are generated properly.
 - Car Behavior: Tests car movement, intersection handling, and rotary navigation.
