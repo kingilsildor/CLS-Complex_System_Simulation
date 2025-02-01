@@ -193,12 +193,11 @@ class Car:
                 assert isinstance(new_x, int)
                 assert isinstance(new_y, int)
                 possible_cell = self.get_infront((new_x, new_y))
-                diagonal_cell = self.get_diagonal((new_x, new_y))
 
                 if possible_cell == CAR_HEAD:
                     break
-                if possible_cell in INTERSECTION_CELLS and diagonal_cell == CAR_HEAD:
-                    break
+                # if possible_cell in INTERSECTION_CELLS: #and diagonal_cell == CAR_HEAD:
+                #    break
 
                 # Update the position, so the car can move to the last open space if needed
                 if possible_cell in ROAD_CELLS:

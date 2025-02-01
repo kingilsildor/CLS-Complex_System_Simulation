@@ -1,0 +1,33 @@
+{
+    "8": {
+        "densities": [
+            0.8
+        ],
+        "velocities": [
+            0.0
+        ],
+        "ci_lower": [
+            0.0
+        ],
+        "ci_upper": [
+            0.0
+        ],
+        "std_error": [
+            0.0
+        ]
+    },
+    "metadata": {
+        "timestamp": "2901_1548",
+        "experiment_type": "road_length",
+        "n_variables": 1,
+        "variable_values": [
+            8
+        ],
+        "statistical_info": {
+            "confidence_level": 0.95,
+            "ci_method": "t-distribution",
+            "normality_test": "Shapiro-Wilk",
+            "normality_alpha": 0.05
+        }
+    }
+}
