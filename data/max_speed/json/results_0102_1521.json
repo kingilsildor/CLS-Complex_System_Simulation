@@ -1,0 +1,84 @@
+{
+    "1": {
+        "densities": [
+            0.05,
+            0.15
+        ],
+        "velocities": [
+            0.11816004962779156,
+            0.0
+        ],
+        "ci_lower": [
+            0.09439622854233636,
+            0.0
+        ],
+        "ci_upper": [
+            0.14192387071324675,
+            0.0
+        ],
+        "std_error": [
+            0.0085590819141235,
+            0.0
+        ]
+    },
+    "3": {
+        "densities": [
+            0.05,
+            0.15
+        ],
+        "velocities": [
+            0.11816004962779156,
+            0.0
+        ],
+        "ci_lower": [
+            0.09439622854233636,
+            0.0
+        ],
+        "ci_upper": [
+            0.14192387071324675,
+            0.0
+        ],
+        "std_error": [
+            0.0085590819141235,
+            0.0
+        ]
+    },
+    "5": {
+        "densities": [
+            0.05,
+            0.15
+        ],
+        "velocities": [
+            0.11816004962779156,
+            0.0
+        ],
+        "ci_lower": [
+            0.09439622854233636,
+            0.0
+        ],
+        "ci_upper": [
+            0.14192387071324675,
+            0.0
+        ],
+        "std_error": [
+            0.0085590819141235,
+            0.0
+        ]
+    },
+    "metadata": {
+        "timestamp": "0102_1521",
+        "experiment_type": "max_speed",
+        "n_variables": 3,
+        "variable_values": [
+            1,
+            3,
+            5
+        ],
+        "statistical_info": {
+            "confidence_level": 0.95,
+            "ci_method": "t-distribution",
+            "normality_test": "Shapiro-Wilk",
+            "normality_alpha": 0.05
+        }
+    }
+}

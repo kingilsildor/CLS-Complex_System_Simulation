@@ -40,7 +40,10 @@ def run_2D_UI_simulation():
 
 
 if __name__ == "__main__":
+    """
+    Uncomment the functions below to run the simulation for different scenarios.
+    """
     # run_2D_NoUI_simulation()
-    # run_2D_UI_simulation()
-    run_1D_simulation()
+    run_2D_UI_simulation()
+    # run_1D_simulation()
     # run_all_experiments()
