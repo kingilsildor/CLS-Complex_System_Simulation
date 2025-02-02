@@ -1000,7 +1000,9 @@ def run_maxspeed_experiment(
 
 
 def run_giant_component_experiment():
-    """Function to calculate and plot the largest connected component size vs. car count."""
+    """
+    Function to calculate and plot the largest connected component size vs. car count.
+    """
 
     num_simulations = 5
     mean_largest_clusters = []

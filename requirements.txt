@@ -1,8 +1,9 @@
 python=3.12.2
 
-numpy=2.2.2
-matplotlib=3.10.0
-pandas=2.2.3
-scipy=1.15.1
-tk
-tqdm=4.66.5
+matplotlib>=3.10.0
+numpy>=2.2.2
+pandas>=2.2.3
+powerlaw>=1.5
+scipy>=1.15.1
+tk>=0.1.0
+tqdm>=4.66.5
