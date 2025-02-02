@@ -144,16 +144,16 @@ All the commits can be found in main.
 The branches aren't being pruned to get an idea about how the project was structured.
 
 ## Git Fame
-Total commits: 149
-Total ctimes: 1576
-Total files: 311
-Total loc: 137053
+Total commits: 156
+Total ctimes: 1902
+Total files: 323
+Total loc: 138986
 | Author       |    loc |   coms |   fils |  distribution   |
 |:-------------|-------:|-------:|-------:|:----------------|
-| kbverlaan    | 108371 |     27 |    265 | 79.1/18.1/85.2  |
-| kingilsildor |  28046 |     86 |     33 | 20.5/57.7/10.6  |
+| kbverlaan    | 108369 |     27 |    265 | 78.0/17.3/82    |
+| kingilsildor |  29136 |     88 |     34 | 21/56.4/10.5    |
+| Bart Koedijk |   1128 |     27 |     14 | 0.8/17.3/ 4.3   |
 | chappy-tm    |    328 |      3 |      8 | 0.2/ 2.0/ 2.6   |
-| Bart Koedijk |    277 |     22 |      3 | 0.2/14.8/ 1.0   |
 | Tycho Stam   |     21 |      7 |      1 | 0.0/ 4.7/ 0.3   |
 | brkoedijk    |     10 |      4 |      1 | 0.0/ 2.7/ 0.3   |
 
