@@ -3,7 +3,6 @@ from abc import ABC
 from tkinter import filedialog, messagebox, scrolledtext
 
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -18,21 +17,42 @@ from src.utils import (
     MAX_SPEED,
     MIN_SPEED,
     ROAD_CELLS,
+    TRAFFIC_JAM,
 )
 
 
 class Simulation(ABC):
     def __init__(self, root: tk.Tk, seed: int = 42):
-        """
-        Abstract class for traffic simulations.
-
-        Params:
-        -------
-        - root (tk.Tk): The root window.
-        - seed (int): The seed for random number generation. Default is 42.
-        """
         self.root = root
-        np.random.seed(seed)
+        # np.random.seed(seed)
+
+    def start_simulation(self):
+        print(f"Simulation started from {self.__class__.__name__}")
+        return
+
+    def pause_simulation(self):
+        print(f"Simulation paused from {self.__class__.__name__}")
+        return
+
+    def stop_simulation(self):
+        print(f"Simulation stopped from {self.__class__.__name__}")
+        return
+
+    def restart_simulation(self):
+        print(f"Simulation restarted from {self.__class__.__name__}")
+        return
+
+    def update_simulation(self):
+        print(f"Simulation updated from {self.__class__.__name__}")
+        return
+
+    def save_simulation(self):
+        print(f"Simulation saved from {self.__class__.__name__}")
+        return
+
+    def close_simulation(self):
+        print(f"Simulation closed from {self.__class__.__name__}")
+        return
 
     def create_plot(self, figsize: tuple = (12, 12), dpi: int = 300) -> plt.Figure:
         """
@@ -89,7 +109,7 @@ class Simulation(ABC):
 
         Returns:
         --------
-        - FigureCanvasTkAgg: The created canvas widget.
+        - tk.Canvas: The canvas widget.
         """
         canvas = FigureCanvasTkAgg(figure, plot_frame)
         canvas.draw()
@@ -218,10 +238,6 @@ class Simulation(ABC):
         - root (tk.Tk): The root window.
         - title (str): The title of the screen.
         - geometry (str): The geometry of the screen.
-
-        Returns:
-        --------
-        - tk.Tk: The created screen.
         """
         root.title(title)
         root.geometry(geometry)
@@ -231,39 +247,11 @@ class Simulation(ABC):
 
 
 class Simulation_1D(Simulation):
-    def generate_density_vs_speed_data(
-        length, max_speed, randomization, time_steps
-    ):  # function for plotting density vs speed across simulations
-        # set random seed
-        np.random.seed(42)
-
-        densities = []
-        avg_speeds = []
-        for num_cars in range(1, length + 1):  # Cover the full range of densities
-            model = NagelSchreckenberg(length, num_cars, max_speed, randomization)
-            total_speed = 0
-            for _ in range(time_steps):
-                model.update()
-                total_speed += model.total_speed
-            avg_speed = total_speed / (time_steps * num_cars)
-            density = num_cars / length
-            densities.append(density)
-            avg_speeds.append(avg_speed)
-        return densities, avg_speeds
-
     def __init__(self, root, seed=42):
-        """
-        Initialize the 1D traffic simulation.
-
-        Params:
-        -------
-        - root (tk.Tk): The root window.
-        - seed (int): The seed for random number generation. Default is 42.
-        """
         super().__init__(root, seed)
 
         root.title("Nagel-Schreckenberg Simulation")
-        root.geometry("1600x800")
+        root.geometry("1600x800")  # Set a fixed size for the window
 
         # Create frames for layout
         control_frame = tk.Frame(root)
@@ -294,26 +282,12 @@ class Simulation_1D(Simulation):
         root.grid_rowconfigure(0, weight=1)
 
         def on_frame_configure(event):
-            """
-            Configure the plot frame when the window is resized.
-
-            Params:
-            -------
-            - event: The event that triggered the configuration.
-            """
             plot_canvas.configure(scrollregion=plot_canvas.bbox("all"))
 
         plot_frame.bind("<Configure>", on_frame_configure)
 
         # Bind mouse wheel events to the plot_canvas for scrolling
         def on_mouse_wheel(event):
-            """
-            Scroll the plot_canvas when the mouse wheel is moved.
-
-            Params:
-            -------
-            - event: The mouse wheel event.
-            """
             plot_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
         plot_canvas.bind_all("<MouseWheel>", on_mouse_wheel)
@@ -363,28 +337,10 @@ class Simulation_1D(Simulation):
         canvas1.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         def init1():
-            """
-            Initialize the plot for density vs speed.
-
-            Returns:
-            --------
-            - line1: The line for the plot.
-            """
             line1.set_data([], [])
             return (line1,)
 
         def update_plot1(frame):
-            """
-            Update the plot for density vs speed.
-
-            Params:
-            -------
-            - frame: The frame to update the plot.
-
-            Returns:
-            --------
-            - line1: The line for the plot.
-            """
             line1.set_data(self.density_data, self.speed_data)
             return (line1,)
 
@@ -409,28 +365,10 @@ class Simulation_1D(Simulation):
         canvas2.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
         def init2():
-            """
-            Initialize the plot for density vs flow.
-
-            Returns:
-            --------
-            - line2: The line for the plot.
-            """
             line2.set_data([], [])
             return (line2,)
 
         def update_plot2(frame):
-            """
-            Update the plot for density vs flow.
-
-            Params:
-            -------
-            - frame: The frame to update the plot.
-
-            Returns:
-            --------
-            - line2: The line for the plot.
-            """
             line2.set_data(self.density_data, self.flow_data)
             return (line2,)
 
@@ -457,28 +395,10 @@ class Simulation_1D(Simulation):
         canvas3.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         def init3():
-            """
-            Initialize the plot for time-space diagram.
-
-            Returns:
-            --------
-            - line3: The line for the plot.
-            """
             line3.set_data([], [])
             return (line3,)
 
         def update_plot3(frame):
-            """
-            Update the plot for time-space diagram.
-
-            Params:
-            -------
-            - frame: The frame to update the plot.
-
-            Returns:
-            --------
-            - line3: The line for the plot.
-            """
             x_data = []
             y_data = []
             for t, positions in enumerate(self.time_space_data):
@@ -496,9 +416,6 @@ class Simulation_1D(Simulation):
         )
 
         def save_plots():
-            """
-            Save the plots to selected file paths.
-            """
             # Manually update the time-space diagram plot before saving
             update_plot3(None)
             fig3.canvas.draw()
@@ -515,9 +432,6 @@ class Simulation_1D(Simulation):
                 messagebox.showinfo("Save Plots", "Plots saved successfully!")
 
         def start_simulation():
-            """
-            Start the simulation with the given parameters when button is pressed.
-            """
             if self.car_count_slider.get() > self.road_length_slider.get():
                 messagebox.showerror(
                     "Parameter Error",
@@ -530,15 +444,9 @@ class Simulation_1D(Simulation):
                 update_simulation()
 
         def stop_simulation():
-            """
-            Stop the simulation when button is pressed.
-            """
             self.running = False
 
         def reset_simulation():
-            """
-            Reset the simulation when button is pressed.
-            """
             stop_simulation()
             self.step_counter = 0
             self.output_lines[:] = 0
@@ -547,9 +455,6 @@ class Simulation_1D(Simulation):
             initialize_model()
 
         def update_simulation():
-            """
-            Update the simulation at each time step.
-            """
             step = self.step_counter
             if self.running and step < self.time_steps_slider.get():
                 self.model.update()
@@ -575,9 +480,6 @@ class Simulation_1D(Simulation):
                 root.after(100, update_simulation)  # Schedule the next update
 
         def initialize_model():
-            """
-            Initialize the model with the given parameters.
-            """
             print(
                 f"Initializing model with length={self.road_length_slider.get()}, num_cars={self.car_count_slider.get()}, max_speed={self.max_speed_slider.get()}"
             )
@@ -589,10 +491,6 @@ class Simulation_1D(Simulation):
             assert isinstance(self.model, NagelSchreckenberg)
 
         def on_closing():
-            """
-            Handle the window close event when the user clicks the 'X' button,
-            or turn it off in the console.
-            """
             stop_simulation()
             ani1.event_source.stop()
             ani2.event_source.stop()
@@ -601,16 +499,10 @@ class Simulation_1D(Simulation):
             root.destroy()
 
         def disable_random():
-            """
-            Disable randomization of the model.
-            """
             self.randomization.set(not self.randomization.get())
             print(f"Randomization set to {self.randomization.get()}")
 
         def plot_density_vs_speed():
-            """
-            Plot the density vs speed graph.
-            """
             plt.show()
 
         # Create buttons for starting, stopping, and resetting the simulation
@@ -703,18 +595,8 @@ class Simulation_1D(Simulation):
 
 
 class Simulation_2D(Simulation, ABC):
-    def __init__(self, root: tk.Tk, rotary_method: int, seed: int = 42):
-        """
-        Initialize the 2D traffic simulation.
-
-        Params:
-        -------
-        - root (tk.Tk): The root window.
-        - rotary_method (int): The method to use for rotaries.
-        - seed (int): The seed for random number generation. Default is 42.
-        """
+    def __init__(self, root, seed=42):
         super().__init__(root, seed)
-        self.rotary_method = rotary_method
 
     def create_cars(
         self, grid: Grid, car_count: int, car_percentage_max_speed: int
@@ -727,13 +609,14 @@ class Simulation_2D(Simulation, ABC):
 
         Params:
         -------
-        - grid (Grid): The grid object.
-        - car_count (int): Number of cars to create.
+        - grid (Grid): The grid object
+        - car_count (int): Number of cars to create
         - drive_on_right (bool): If True, cars drive on the right side. If False, left side.
 
         Returns:
         --------
-        - list[Car]: List of Car objects.
+        - list[Car]: List of Car objects
+
         """
         cars = np.zeros(car_count, dtype=object)
 
@@ -767,7 +650,6 @@ class Simulation_2D_NoUI(Simulation_2D):
         self,
         root: tk.Tk,
         max_iter: int,
-        rotary_method: int,
         grid_size: int,
         road_length: int,
         road_max_speed: int,
@@ -775,33 +657,15 @@ class Simulation_2D_NoUI(Simulation_2D):
         car_percentage_max_speed: int,
         seed: int = 42,
     ):
-        """
-        Initialize the 2D traffic simulation without a user interface.
-
-        Params:
-        -------
-        - root (tk.Tk): The root window.
-        - max_iter (int): The maximum number of iterations.
-        - rotary_method (int): The method to use for rotaries.
-        - grid_size (int): The size of the grid.
-        - road_length (int): The length of the road.
-        - road_max_speed (int): The maximum speed of cars on the road.
-        - car_count (int): The number of cars to create.
-        - car_percentage_max_speed (int): The percentage of cars that will drive at the maximum speed.
-        - seed (int): The seed for random number generation. Default is 42.
-        """
-        super().__init__(root, rotary_method=rotary_method, seed=seed)
-        self.grid = Grid(
-            grid_size=grid_size,
-            blocks_size=road_length,
-            rotary_method=self.rotary_method,
-        )
+        super().__init__(root, seed)
+        self.grid = Grid(grid_size, road_length)
         self.max_iter = max_iter
         self.grid_size = grid_size
         self.road_length = road_length
         self.road_max_speed = road_max_speed
         self.car_count = car_count
         self.car_percentage_max_speed = car_percentage_max_speed
+        self.largest_component = None
 
     def start_simulation(self, output: bool = True):
         """
@@ -854,17 +718,32 @@ class Simulation_2D_NoUI(Simulation_2D):
             new_grid = self.grid.grid.copy()
             assert isinstance(new_grid, np.ndarray)
             self.grid_states[step] = new_grid
+        jammed_cars = []
+        for car, dist in zip(self.grid.cars, moved_cars):
+            if dist == 0 or car.on_rotary:
+                jammed_cars.append(car)
+
+        for car in jammed_cars:
+            x, y = car.head_position
+            self.grid.jammed[x, y] = TRAFFIC_JAM
         print("-------------------")
+        # print("Simulation complete! Generating jammed network graph...")
+
+        # Returning the largest component of the jammed network in order to analyze the giant component
+        G = self.grid.jammed_network()
+        if G.number_of_nodes() == 0:
+            print("No jammed positions found.")
+            return
+        else:
+            cluster_sizes = self.grid.analyze_cluster_sizes(G)
+
+            self.largest_component = self.grid.get_largest_cluster(G)
+
+            return cluster_sizes
 
     def data_print(self, steps: int, step: int, metrics: dict):
         """
         Print the simulation data at each step.
-
-        Params:
-        -------
-        - steps (int): The total number of steps.
-        - step (int): The current step.
-        - metrics (dict): The metrics of the simulation.
         """
         print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
         print(
@@ -893,24 +772,9 @@ class Simulation_2D_NoUI(Simulation_2D):
 
 
 class Simulation_2D_UI(Simulation_2D):
-    def __init__(
-        self,
-        root: tk.Tk,
-        rotary_method: int,
-        seed: int = 42,
-        colour_blind: bool = False,
-    ):
-        """
-        Initialize the 2D traffic simulation with a user interface.
+    def __init__(self, root, seed=42, colour_blind=False):
+        super().__init__(root, seed)
 
-        Params:
-        -------
-        - root (tk.Tk): The root window.
-        - rotary_method (int): The method to use for rotaries.
-        - seed (int): The seed for random number generation. Default is 42.
-        - colour_blind (bool): If True, use a colour-blind friendly palette. Default is False.
-        """
-        super().__init__(root, rotary_method=rotary_method, seed=seed)
         self.root.title("Car Traffic in a 2D street network.")
 
         self.control_frame = tk.Frame(self.root)
@@ -931,9 +795,7 @@ class Simulation_2D_UI(Simulation_2D):
         self.init_plot()
 
     def init_plot(self):
-        """
-        Initialize the matplotlib plots for the simulation.
-        """
+        """Initialize the matplotlib plots"""
         self.fig = plt.Figure(figsize=(12, 12))
         gs = self.fig.add_gridspec(4, 2, width_ratios=[1, 1])
 
@@ -988,15 +850,13 @@ class Simulation_2D_UI(Simulation_2D):
 
         self.fig.tight_layout()
 
-        title = "Welcome to SimCity 2000©"
+        title = "Welcome to SimCity 2000"
         self.ax_grid.set_title(title)
 
         self.canvas.draw()
 
     def init_data_plot(self):
-        """
-        Set up the plot for the simulation.
-        """
+        """Set up the plot for the simulation."""
         # Clear previous plots
         self.ax_grid.clear()
         self.ax_density.clear()
@@ -1067,9 +927,7 @@ class Simulation_2D_UI(Simulation_2D):
         self.canvas.draw()
 
     def init_metrics_display(self):
-        """
-        Initialize the metrics display panel.
-        """
+        """Initialize the metrics display panel"""
         self.metrics_frame = tk.Frame(self.control_frame)
         self.metrics_frame.pack(pady=10)
 
@@ -1097,9 +955,7 @@ class Simulation_2D_UI(Simulation_2D):
             self.metrics_labels[metric] = value
 
     def init_buttons(self):
-        """
-        Initialize control buttons for the simulation.
-        """
+        """Initialize control buttons"""
         self.start_button = tk.Button(
             self.control_frame,
             text="Start Simulation",
@@ -1122,13 +978,7 @@ class Simulation_2D_UI(Simulation_2D):
         self.reset_button.pack(pady=5)
 
     def init_sliders(self, control_frame: tk.Frame):
-        """
-        Initialize the control sliders for the simulation.
-
-        Params:
-        -------
-        - control_frame (tk.Frame): The frame in which the sliders will be placed.
-        """
+        """Initialize the control sliders"""
         self.steps_slider = tk.IntVar(value=250)
         assert isinstance(self.steps_slider, tk.IntVar)
         self.create_slider(
@@ -1202,28 +1052,10 @@ class Simulation_2D_UI(Simulation_2D):
     def init_grid(self, grid_size: int, blocks_size: int, max_speed: int) -> Grid:
         """
         Initialize the grid with the given parameters.
-
-        Params:
-        -------
-        - grid_size (int): The size of the grid.
-        - blocks_size (int): The size of the blocks.
-        - max_speed (int): The maximum speed of cars on the road.
-
-        Returns:
-        --------
-        - Grid: The grid object.
         """
-        return Grid(
-            grid_size=grid_size,
-            blocks_size=blocks_size,
-            rotary_method=self.rotary_method,
-            max_speed=max_speed,
-        )
+        return Grid(grid_size=grid_size, blocks_size=blocks_size, max_speed=max_speed)
 
     def start_simulation(self):
-        """
-        Start the simulation with the given parameters.
-        """
         self.restart_simulation_if_needed()
         self.write_header()
 
@@ -1241,7 +1073,6 @@ class Simulation_2D_UI(Simulation_2D):
         self.grid = Grid(
             grid_size=grid_size,
             blocks_size=blocks_size,
-            rotary_method=self.rotary_method,
             max_speed=max_speed,
         )
         self.density_tracker = DensityTracker(self.grid)
@@ -1320,13 +1151,9 @@ class Simulation_2D_UI(Simulation_2D):
             self.ax_queue.clear()
             self.canvas.draw()
 
-    def pause_simulation(self) -> None:
+    def pause_simulation(self):
         """
-        Pause or resume the simulation, based on the previous state.
-
-        Returns:
-        --------
-        - None if no simulation is running.
+        Pause or resume the simulation.
         """
         if not self.animation:
             print("No simulation running.")
@@ -1345,24 +1172,8 @@ class Simulation_2D_UI(Simulation_2D):
             self.pause_button.config(text="Pause Simulation")
             print("Simulation resumed.")
 
-    def update_simulation(self, frame: int) -> list:
-        """
-        Update the simulation for each frame.
-
-        Params:
-        -------
-        - frame (int): The current frame number.
-
-        Returns:
-        --------
-        - im (matplotlib.image.AxesImage): The grid plot
-        - velocity_line (matplotlib.lines.Line2D): The velocity plot
-        - road_density_line (matplotlib.lines.Line2D): The road density plot
-        - intersection_density_line (matplotlib.lines.Line2D): The intersection density plot
-        - flow_line (matplotlib.lines.Line2D): The traffic flow plot
-        - queue_line (matplotlib.lines.Line2D): The queue length plot
-        """
-
+    def update_simulation(self, frame):
+        """Update the simulation for each frame."""
         if self.is_paused:
             return [
                 self.im,
@@ -1465,23 +1276,14 @@ class Simulation_2D_UI(Simulation_2D):
         # Save plots at the end of simulation
         if frame == self.steps - 1:
             self.save_plots()
-            print("Yo")
-            G = self.grid.jammed_network()
-            plt.figure(figsize=(6, 6))  # Set figure size
-            pos = {
-                node: node for node in G.nodes()
-            }  # Use node positions as coordinates
-            nx.draw(
-                G,
-                pos,
-                with_labels=True,
-                node_color="lightblue",
-                edge_color="gray",
-                node_size=700,
-                font_size=12,
-            )
 
-            plt.show()
+            G = self.grid.jammed_network()
+            if G.number_of_nodes() == 0:
+                print("No jammed positions found.")
+                return
+            else:
+                # cluster_sizes = self.grid.analyze_cluster_sizes(G)
+                self.largest_component = self.grid.get_largest_cluster(G)
 
         return [
             self.im,
