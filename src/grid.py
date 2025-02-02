@@ -3,7 +3,8 @@ import networkx as nx
 import numpy as np
 import powerlaw
 
-from src.utils import (
+from utils import (
+    # from src.utils import (
     BLOCKS_VALUE,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
@@ -158,7 +159,12 @@ class Grid:
         -------
         - cars (list): A list of car objects to be added to the grid.
         """
-        self.cars.extend(cars)
+        try:
+            self.cars.extend(cars)
+        except Exception as e:
+            raise ValueError(
+                f"Adding cars to the grid failed. Please try a lower amount of cars. Error: {e}"
+            )
 
     def update_movement(self):
         """
@@ -196,7 +202,7 @@ class Grid:
         """
         G = nx.Graph()
         jammed_positions = self.get_jammed_positions()
-        # unique_jammed_positions = np.unique(jammed_positions, axis=0)
+
         unique_jammed_positions = set(map(tuple, jammed_positions))
 
         for x, y in unique_jammed_positions:
@@ -211,8 +217,6 @@ class Grid:
                 G.add_edge((x, y), (x - 1, y))
             if (x + 1, y) in unique_jammed_positions:  # Front neighbor
                 G.add_edge((x, y), (x + 1, y))
-
-        print("G.number_of_nodes() =", G.number_of_nodes())
 
         return G
 

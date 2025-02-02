@@ -736,30 +736,44 @@ class Simulation_2D(Simulation, ABC):
         --------
         - list[Car]: List of Car objects.
         """
+        road_cells = np.argwhere(np.isin(grid.grid, ROAD_CELLS))
+        available_space = len(road_cells)
+
+        if car_count > available_space:
+            raise ValueError(
+                f"Too many cars! The grid only has {available_space} road spaces, "
+                f"but you tried to add {car_count} cars. Please reduce the car count."
+            )
+
         cars = np.zeros(car_count, dtype=object)
 
         follow_limit_count = int(car_count * (car_percentage_max_speed / 100))
         follow_limit_indices = set(
             np.random.choice(car_count, follow_limit_count, replace=False)
         )
+        try:
+            for i in range(car_count):
+                while (
+                    grid.grid[
+                        x := np.random.randint(0, grid.size),
+                        y := np.random.randint(0, grid.size),
+                    ]
+                    not in ROAD_CELLS
+                ):
+                    pass
 
-        for i in range(car_count):
-            while (
-                grid.grid[
-                    x := np.random.randint(0, grid.size),
-                    y := np.random.randint(0, grid.size),
-                ]
-                not in ROAD_CELLS
-            ):
-                pass
+                # Set "follow the speed limit" for cars
+                follow_limit = True if i in follow_limit_indices else False
+                car = Car(grid, position=(x, y), follow_limit=follow_limit)
+                assert isinstance(car, Car)
+                cars[i] = car
 
-            # Set "follow the speed limit" for cars
-            follow_limit = True if i in follow_limit_indices else False
-            car = Car(grid, position=(x, y), follow_limit=follow_limit)
-            assert isinstance(car, Car)
-            cars[i] = car
+            assert isinstance(cars, np.ndarray)
+        except Exception as e:
+            raise ValueError(
+                f"Adding cars to the grid failed. Please try a lower amount of cars. Error: {e}"
+            )
 
-        assert isinstance(cars, np.ndarray)
         return cars
 
 

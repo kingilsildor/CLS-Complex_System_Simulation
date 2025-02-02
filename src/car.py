@@ -1,8 +1,9 @@
 import numpy as np
 
 # from src.grid import Grid
-from src.grid import Grid
-from src.utils import (
+from grid import Grid
+from utils import (
+    # from src.utils import (
     CAR_HEAD,
     FIXED_DESTINATION,
     FREE_MOVEMENT,

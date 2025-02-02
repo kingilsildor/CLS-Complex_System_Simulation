@@ -2,7 +2,8 @@ import tkinter as tk
 
 import powerlaw
 
-from src.experiment import run_giant_component_experiment
+# Uncomment the line below to run the giant component experiment
+# from src.experiment import run_giant_component_experiment
 from src.grid import Grid
 from src.simulation import (
     Simulation_1D,
@@ -52,7 +53,7 @@ def run_2D_NoUI_powerlaw():
             None,
             max_iter=1000,
             rotary_method=FIXED_DESTINATION,
-            grid_size=100,
+            grid_size=10,
             road_length=8,
             road_max_speed=2,
             car_count=3200,
@@ -80,7 +81,10 @@ if __name__ == "__main__":
     """
     # run_2D_UI_simulation()
     # run_1D_simulation()
-    run_giant_component_experiment()
+
+    # Uncomment import statement at the top to run the giant component experiment
+    # run_giant_component_experiment()
+
     # run_2D_NoUI_powerlaw()
-    # run_2D_NoUI_simulation()
+    run_2D_NoUI_simulation()
     # run_all_experiments()
