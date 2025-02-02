@@ -2,7 +2,7 @@ import tkinter as tk
 
 import powerlaw
 
-from src.experiment import run_giant_component_experiment
+from src.experiment import run_all_experiments, run_giant_component_experiment
 from src.grid import Grid
 from src.simulation import (
     Simulation_1D,
@@ -74,13 +74,17 @@ def run_2D_NoUI_powerlaw():
     return all_cluster_sizes
 
 
+def run_all_experiments_main():
+    run_all_experiments()
+    run_giant_component_experiment()
+
+
 if __name__ == "__main__":
     """
     Uncomment the functions below to run the simulation for different scenarios.
     """
-    # run_2D_UI_simulation()
+    run_2D_UI_simulation()
     # run_1D_simulation()
-    run_giant_component_experiment()
     # run_2D_NoUI_powerlaw()
     # run_2D_NoUI_simulation()
-    # run_all_experiments()
+    # run_all_experiments_main

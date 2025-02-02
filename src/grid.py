@@ -183,7 +183,7 @@ class Grid:
         list: A list of jammed cell positions
 
         """
-        np.savetxt("jammed.txt", self.jammed, fmt="%d")
+        np.savetxt("data/jammed.txt", self.jammed, fmt="%d")
         return np.argwhere(self.jammed == TRAFFIC_JAM)
 
     def jammed_network(self):
