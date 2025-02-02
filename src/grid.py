@@ -3,8 +3,7 @@ import networkx as nx
 import numpy as np
 import powerlaw
 
-from utils import (
-    # from src.utils import (
+from src.utils import (
     BLOCKS_VALUE,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
