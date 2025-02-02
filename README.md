@@ -137,7 +137,7 @@ For the presentation the work was also devided around the things we worked aroun
 
 - **Max**: Created the 1D model and the necessary analytics for it.
 - **Koen**: Contributed to the system-wide analysis capabilities of the simulation by writing the `Density` class and experiment file.
-- **Bart**: Worked on the Car logic in collaboration with Tycho and implemented the testing.
+- **Bart**: Worked on the Car logic, testing and network and powerlaw analyses.
 - **Tycho**: Worked on the boilerplates of the code base, such as the `Car`, `Grid` and `Simulation` classes. Handeled the repository and helped with bug fixing.
 
 All the commits can be found in main.
