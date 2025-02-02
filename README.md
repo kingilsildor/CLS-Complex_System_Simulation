@@ -97,7 +97,6 @@ The followings functions can be called:
 The repository includes **pytest-based unit tests** to ensure the correctness of the core functionalities: These tests cover:
 - Grid initialization: Verifies that the grid is correctly set up with roads, intersections, and blocks
 - Road Creation: Ensures that vertical and horizontal roads are generated properly.
-- Car Behavior: Tests car movement, intersection handling, and rotary navigation.
 - Collission and Interaction: Checks if cars correctly detect other vehicles in front or at intersections.
 
 To run all tests, make sure that the imports are changed in Car.py and Grid.py from "src.utils" to "utils" for all imports and then execute:
