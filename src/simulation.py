@@ -812,7 +812,6 @@ class Simulation_2D_NoUI(Simulation_2D):
         - output (bool): If True, print the simulation steps. Default is True.
         """
         density_tracter = DensityTracker(self.grid)
-
         # Init cars
         cars = self.create_cars(
             self.grid, self.car_count, self.car_percentage_max_speed
@@ -855,6 +854,15 @@ class Simulation_2D_NoUI(Simulation_2D):
             assert isinstance(new_grid, np.ndarray)
             self.grid_states[step] = new_grid
         print("-------------------")
+        G = self.grid.jammed_network()
+        if G.number_of_nodes() == 0:
+            print("No jammed positions found.")
+            return
+        else:
+            self.largest_component = self.grid.get_largest_cluster(G)
+            cluster_sizes = self.grid.analyze_cluster_sizes(G)
+            print("Inside last step")
+            return cluster_sizes
 
     def data_print(self, steps: int, step: int, metrics: dict):
         """

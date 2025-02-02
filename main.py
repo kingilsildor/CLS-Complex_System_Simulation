@@ -20,14 +20,15 @@ def run_2D_NoUI_simulation():
         grid_size=15,
         road_length=10,
         road_max_speed=2,
-        car_count=3200,
+        car_count=3,
         car_percentage_max_speed=100,
     )
     sim.start_simulation()
-    grids = sim.get_grid_states()
-    for grid in grids:
-        print(grid)
-        print("---------------------------------")
+    print("Simulation done")
+    # grids = sim.get_grid_states()
+    # for grid in grids:
+    #     print(grid)
+    #     print("---------------------------------")
 
 
 def run_1D_simulation():
@@ -49,6 +50,7 @@ def run_2D_NoUI_powerlaw():
         sim = Simulation_2D_NoUI(
             None,
             max_iter=1000,
+            rotary_method=FIXED_DESTINATION,
             grid_size=100,
             road_length=8,
             road_max_speed=2,
@@ -77,6 +79,6 @@ if __name__ == "__main__":
     # run_2D_UI_simulation()
     # run_1D_simulation()
     # run_giant_component_experiment()
-    # run_2D_NoUI_powerlaw()
-    run_2D_NoUI_simulation()
+    run_2D_NoUI_powerlaw()
+    # run_2D_NoUI_simulation()
     # run_all_experiments()
