@@ -11,13 +11,20 @@ from src.car import Car
 from src.density import DensityTracker
 from src.grid import Grid
 from src.nagel_schreckenberg import NagelSchreckenberg
-from src.utils import CAR_DIRECTION, FILE_EXTENSION, MAX_SPEED, MIN_SPEED, ROAD_CELLS
+from src.utils import (
+    CAR_DIRECTION,
+    FILE_EXTENSION,
+    MAX_SPEED,
+    MIN_SPEED,
+    ROAD_CELLS,
+    TRAFFIC_JAM,
+)
 
 
 class Simulation(ABC):
     def __init__(self, root: tk.Tk, seed: int = 42):
         self.root = root
-        np.random.seed(seed)
+        # np.random.seed(seed)
 
     def start_simulation(self):
         print(f"Simulation started from {self.__class__.__name__}")
@@ -658,6 +665,7 @@ class Simulation_2D_NoUI(Simulation_2D):
         self.road_max_speed = road_max_speed
         self.car_count = car_count
         self.car_percentage_max_speed = car_percentage_max_speed
+        self.largest_component = None
 
     def start_simulation(self, output: bool = True):
         """
@@ -710,7 +718,28 @@ class Simulation_2D_NoUI(Simulation_2D):
             new_grid = self.grid.grid.copy()
             assert isinstance(new_grid, np.ndarray)
             self.grid_states[step] = new_grid
+        jammed_cars = []
+        for car, dist in zip(self.grid.cars, moved_cars):
+            if dist == 0 or car.on_rotary:
+                jammed_cars.append(car)
+
+        for car in jammed_cars:
+            x, y = car.head_position
+            self.grid.jammed[x, y] = TRAFFIC_JAM
         print("-------------------")
+        # print("Simulation complete! Generating jammed network graph...")
+
+        # Returning the largest component of the jammed network in order to analyze the giant component
+        G = self.grid.jammed_network()
+        if G.number_of_nodes() == 0:
+            print("No jammed positions found.")
+            return
+        else:
+            cluster_sizes = self.grid.analyze_cluster_sizes(G)
+
+            self.largest_component = self.grid.get_largest_cluster(G)
+
+            return cluster_sizes
 
     def data_print(self, steps: int, step: int, metrics: dict):
         """
@@ -1247,6 +1276,14 @@ class Simulation_2D_UI(Simulation_2D):
         # Save plots at the end of simulation
         if frame == self.steps - 1:
             self.save_plots()
+
+            G = self.grid.jammed_network()
+            if G.number_of_nodes() == 0:
+                print("No jammed positions found.")
+                return
+            else:
+                # cluster_sizes = self.grid.analyze_cluster_sizes(G)
+                self.largest_component = self.grid.get_largest_cluster(G)
 
         return [
             self.im,

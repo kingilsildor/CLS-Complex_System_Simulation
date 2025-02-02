@@ -1,15 +1,17 @@
-import numpy as np
-from tqdm import tqdm
+import json
 import multiprocessing as mp
+import time
 from itertools import product
 
-from src.simulation import SimulationUI
-from src.grid import Grid
-from src.density import DensityTracker
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-import json
-import time
+from tqdm import tqdm
+
+from src.density import DensityTracker
+from src.grid import Grid
+from src.simulation import SimulationUI
+from src.simulation_boilerplate import Simulation_2D_NoUI
 
 
 def calculate_grid_size(blocks_size):
@@ -284,3 +286,66 @@ def run_speed_experiment():
     # Save results and create plots
     formatted_results = save_speed_results(results, speed_percentages)
     create_speed_analysis_plots(formatted_results, speed_percentages)
+
+
+def run_giant_component_experiment():
+    """Function to calculate and plot the largest connected component size vs. car count."""
+
+    num_simulations = 5
+    mean_largest_clusters = []
+    confidence_intervals = []
+    z_value = 1.96  # For 95% confidence interval
+    car_counts = np.arange(100, 3600, 100)
+
+    for c in tqdm(car_counts, desc="Running simulations"):
+        largest_cluster_sizes = []
+
+        for _ in range(num_simulations):
+            sim = Simulation_2D_NoUI(
+                None,
+                max_iter=1000,
+                grid_size=100,
+                road_length=8,
+                road_max_speed=2,
+                car_count=c,
+                car_percentage_max_speed=100,
+            )
+            sim.start_simulation()
+            largest_cluster = sim.largest_component
+            if largest_cluster is not None:
+                largest_cluster_sizes.append(largest_cluster)
+            else:
+                largest_cluster_sizes.append(0)
+
+        print(f"Largest cluster size: {largest_cluster_sizes}")
+        mean_largest_clusters.append(np.mean(largest_cluster_sizes))
+
+        sem = np.std(largest_cluster_sizes, ddof=1) / np.sqrt(
+            num_simulations
+        )  # Standard error
+        ci_half_width = z_value * sem  # Half-width of the 95% CI
+        confidence_intervals.append(ci_half_width)
+
+    lower_bounds = [
+        m - ci for m, ci in zip(mean_largest_clusters, confidence_intervals)
+    ]
+    upper_bounds = [
+        m + ci for m, ci in zip(mean_largest_clusters, confidence_intervals)
+    ]
+
+    plt.figure()
+    plt.plot(
+        car_counts, mean_largest_clusters, marker="o", label="Mean Largest Cluster Size"
+    )
+    plt.fill_between(
+        car_counts,
+        lower_bounds,
+        upper_bounds,
+        alpha=0.2,
+        label="95% Confidence Interval",
+    )
+    plt.xlabel("Car Count")
+    plt.ylabel("Largest Cluster Size")
+    plt.title("Largest Connected Component vs. Car Count (with 95% CI)")
+    plt.legend()
+    plt.show()

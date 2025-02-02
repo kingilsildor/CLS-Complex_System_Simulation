@@ -9,6 +9,7 @@ dependencies = [
     "matplotlib>=3.10.0",
     "numpy>=2.2.2",
     "pandas>=2.2.3",
+    "powerlaw>=1.5",
     "scipy>=1.15.1",
     "tk>=0.1.0",
     "tqdm>=4.67.1",

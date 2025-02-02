@@ -1,13 +1,17 @@
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
+import powerlaw
 
 from src.utils import (
     BLOCKS_VALUE,
     HORIZONTAL_ROAD_VALUE_LEFT,
     HORIZONTAL_ROAD_VALUE_RIGHT,
     INTERSECTION_DRIVE,
+    ROAD_CELLS,
+    TRAFFIC_JAM,
     VERTICAL_ROAD_VALUE_LEFT,
     VERTICAL_ROAD_VALUE_RIGHT,
-    ROAD_CELLS,
 )
 
 temp = HORIZONTAL_ROAD_VALUE_LEFT + VERTICAL_ROAD_VALUE_RIGHT
@@ -42,6 +46,7 @@ class Grid:
         self.cars = []
         self.rotary_dict = []
         self.flag = np.full((grid_size, grid_size), INTERSECTION_DRIVE, dtype=int)
+        self.jammed = np.zeros((grid_size, grid_size))
 
         # Store the road layout
         self.roads()
@@ -57,6 +62,8 @@ class Grid:
         self.intersection_cells = np.sum(self.underlying_grid == INTERSECTION_DRIVE)
 
         self.allow_rotary_entry = False  # Start with rotaries blocked
+
+        self.largest_component = None
 
     def roads(self):
         """
@@ -161,5 +168,112 @@ class Grid:
         moved_distances = []
         for car in self.cars:
             distance = car.move()
+
             moved_distances.append(distance)
+
         return moved_distances
+
+    def get_jammed_positions(self):
+        """
+        Get the positions of all jammed cells.
+
+        Returns:
+        --------
+        list: A list of jammed cell positions
+
+        """
+        np.savetxt("jammed.txt", self.jammed, fmt="%d")
+        return np.argwhere(self.jammed == TRAFFIC_JAM)
+
+    def jammed_network(self):
+        """
+        Get the jammed network.
+
+        Returns:
+        --------
+        list: A list of jammed cell positions
+        """
+        G = nx.Graph()
+        jammed_positions = self.get_jammed_positions()
+        # unique_jammed_positions = np.unique(jammed_positions, axis=0)
+        unique_jammed_positions = set(map(tuple, jammed_positions))
+
+        for x, y in unique_jammed_positions:
+            # Assuming cars move along the y-axis (vertical roads)
+            if (x, y - 1) in unique_jammed_positions:  # Back neighbor
+                G.add_edge((x, y), (x, y - 1))
+            if (x, y + 1) in unique_jammed_positions:  # Front neighbor
+                G.add_edge((x, y), (x, y + 1))
+
+            # If cars move along the x-axis (horizontal roads)
+            if (x - 1, y) in unique_jammed_positions:  # Back neighbor
+                G.add_edge((x, y), (x - 1, y))
+            if (x + 1, y) in unique_jammed_positions:  # Front neighbor
+                G.add_edge((x, y), (x + 1, y))
+
+        print("G.number_of_nodes() =", G.number_of_nodes())
+
+        return G
+
+    def analyze_cluster_sizes(self, G):
+        """
+        Analyze the size of clusters in the jammed network.
+
+        Params:
+        -------
+        - G (nx.Graph): The jammed network graph.
+
+        Returns:
+        --------
+        list: A list of cluster sizes.
+        """
+        cluster_sizes = [len(c) for c in nx.connected_components(G)]
+        cluster_sizes.sort(reverse=True)
+
+        print(f"Number of clusters: {len(cluster_sizes)}")
+        print(f"Cluster sizes: {cluster_sizes}")
+        print(f"Sum: {sum(cluster_sizes)}")
+
+        return cluster_sizes
+
+    def get_largest_cluster(self, G):
+        """
+        Get the largest cluster in the jammed network.
+
+        Params:
+        -------
+        - G (nx.Graph): The jammed network graph.
+
+        Returns:
+        --------
+        set: The largest cluster in the network.
+        """
+        largest_cluster = max(nx.connected_components(G), key=len)
+        return len(largest_cluster)
+
+    def set_largest_cluster(self):
+        self.largest_component = self.get_largest_cluster(self.jammed_network())
+
+    def plot_powerlaw_fit(self, cluster_sizes, grid_size, car_count):
+        fit = powerlaw.Fit(cluster_sizes, discrete=True)
+
+        # Create a plot of the PDF
+        figPDF = fit.plot_pdf(
+            color="b", marker="o", linewidth=0, label="Empirical Data"
+        )
+
+        # Plot the best-fit power law on the same axes
+        fit.power_law.plot_pdf(
+            color="r",
+            linestyle="--",
+            ax=figPDF,
+            label=f"Power Law Fit (α={fit.alpha:2f})",
+        )
+
+        plt.title(
+            f"Cluster Size Distribution (PDF) with Power Law Fit\n Grid Size: {grid_size}, Car Count: {car_count}"
+        )
+        plt.xlabel("Cluster Size")
+        plt.ylabel("PDF")
+        plt.legend()
+        plt.show()

@@ -1,6 +1,7 @@
 import tkinter as tk
 
 import matplotlib
+import networkx as nx
 
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
@@ -166,7 +167,7 @@ class SimulationUI:
         def _init_sliders():
             """Initialize the control sliders"""
             self.steps_slider = self.create_slider(
-                "Steps", default_val=250, min_val=50, max_val=1000
+                "Steps", default_val=10, min_val=10, max_val=1000
             )
 
             self.frame_rate_slider = self.create_slider(
@@ -511,6 +512,23 @@ class SimulationUI:
         # Save plots at the end of simulation
         if frame == self.steps - 1:
             self.save_plots()
+            print("Yo")
+            G = self.grid.jammed_network()
+            plt.figure(figsize=(6, 6))  # Set figure size
+            pos = {
+                node: node for node in G.nodes()
+            }  # Use node positions as coordinates
+            nx.draw(
+                G,
+                pos,
+                with_labels=True,
+                node_color="lightblue",
+                edge_color="gray",
+                node_size=700,
+                font_size=12,
+            )
+
+            plt.show()
 
         return [
             self.im,
@@ -622,37 +640,67 @@ class SimulationUI:
         total_velocity = 0
         total_road_density = 0
         total_intersection_density = 0
-
+        print("Loop completed")
         if output:
             print("\033[1;36m=== Traffic Simulation ===")
             print(
                 f"Grid: {grid_size}x{grid_size} | Cars: {car_count} | Steps: {steps}\033[0m\n"
             )
 
-        for step in range(steps):
-            moved_distances = self.grid.update_movement()
-            metrics = self.density_tracker.update(moved_distances)
-            total_velocity += metrics["average_velocity"]
-            total_road_density += metrics["road_density"]
-            total_intersection_density += metrics["intersection_density"]
+        try:
+            for step in range(steps):
+                moved_distances = self.grid.update_movement()
+                metrics = self.density_tracker.update(moved_distances)
+                total_velocity += metrics["average_velocity"]
+                total_road_density += metrics["road_density"]
+                total_intersection_density += metrics["intersection_density"]
 
-            if output:
-                print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
-                print(
-                    f"\033[1;32mSystem: {metrics['global_density'] * 100:4.1f}%\033[0m",
-                    end=" ",
-                )
-                print(
-                    f"\033[1;34mRoads: {metrics['road_density'] * 100:4.1f}%\033[0m",
-                    end=" ",
-                )
-                print(
-                    f"\033[1;35mInter: {metrics['intersection_density'] * 100:4.1f}%\033[0m",
-                    end=" ",
-                )
-                print(f"\033[1;36mCars: {metrics['total_cars']:3d}\033[0m")
+                if output:
+                    print(f"\033[1;33mStep {step + 1:4d}/{steps:d}\033[0m", end=" ")
+                    print(
+                        f"\033[1;32mSystem: {metrics['global_density'] * 100:4.1f}%\033[0m",
+                        end=" ",
+                    )
+                    print(
+                        f"\033[1;34mRoads: {metrics['road_density'] * 100:4.1f}%\033[0m",
+                        end=" ",
+                    )
+                    print(
+                        f"\033[1;35mInter: {metrics['intersection_density'] * 100:4.1f}%\033[0m",
+                        end=" ",
+                    )
+                    print(f"\033[1;36mCars: {metrics['total_cars']:3d}\033[0m")
+                    print("Loop completed")
+                grid_states.append(self.grid.grid.copy())
+                print("Loop completed")
+            print("Loop completed")
+        except Exception as e:
+            print(f"Error: {e}")
 
-            grid_states.append(self.grid.grid.copy())
+        print("HELLOO")
+        print(f"self.grid is of type: {type(self.grid)}")
+
+        if hasattr(self.grid, "jammed_network"):
+            print("jammed_network() exists, calling now...")
+            G = self.grid.jammed_network()
+        else:
+            print("Error: jammed_network() method not found in Grid.")
+
+        G = self.grid.jammed_network()
+        plt.figure(figsize=(6, 6))  # Set figure size
+        pos = {node: node for node in G.nodes()}  # Use node positions as coordinates
+        nx.draw(
+            G,
+            pos,
+            with_labels=True,
+            node_color="lightblue",
+            edge_color="gray",
+            node_size=700,
+            font_size=12,
+        )
+
+        # Show plot
+        plt.show()
 
         return grid_states
 
