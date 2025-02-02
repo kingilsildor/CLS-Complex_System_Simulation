@@ -2,6 +2,7 @@ import tkinter as tk
 
 import powerlaw
 
+from src.experiment import run_giant_component_experiment
 from src.grid import Grid
 from src.simulation import (
     Simulation_1D,
@@ -60,6 +61,7 @@ def run_2D_NoUI_powerlaw():
         cluster_sizes = sim.start_simulation()
         all_cluster_sizes.extend(cluster_sizes)
 
+    print(all_cluster_sizes)
     fit = powerlaw.Fit(all_cluster_sizes, discrete=True)
 
     print("alpha =", fit.alpha)
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     """
     # run_2D_UI_simulation()
     # run_1D_simulation()
-    # run_giant_component_experiment()
-    run_2D_NoUI_powerlaw()
+    run_giant_component_experiment()
+    # run_2D_NoUI_powerlaw()
     # run_2D_NoUI_simulation()
     # run_all_experiments()

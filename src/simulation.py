@@ -18,6 +18,7 @@ from src.utils import (
     MAX_SPEED,
     MIN_SPEED,
     ROAD_CELLS,
+    TRAFFIC_JAM,
 )
 
 
@@ -854,6 +855,16 @@ class Simulation_2D_NoUI(Simulation_2D):
             assert isinstance(new_grid, np.ndarray)
             self.grid_states[step] = new_grid
         print("-------------------")
+
+        jammed_cars = []
+        for car, dist in zip(self.grid.cars, moved_cars):
+            if dist == 0 or car.on_rotary:
+                jammed_cars.append(car)
+
+        for car in jammed_cars:
+            x, y = car.head_position
+            self.grid.jammed[x, y] = TRAFFIC_JAM
+
         G = self.grid.jammed_network()
         if G.number_of_nodes() == 0:
             print("No jammed positions found.")
@@ -861,7 +872,6 @@ class Simulation_2D_NoUI(Simulation_2D):
         else:
             self.largest_component = self.grid.get_largest_cluster(G)
             cluster_sizes = self.grid.analyze_cluster_sizes(G)
-            print("Inside last step")
             return cluster_sizes
 
     def data_print(self, steps: int, step: int, metrics: dict):

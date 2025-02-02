@@ -255,7 +255,8 @@ class Grid:
     def set_largest_cluster(self):
         self.largest_component = self.get_largest_cluster(self.jammed_network())
 
-    def plot_powerlaw_fit(self, cluster_sizes, grid_size, car_count):
+    @staticmethod
+    def plot_powerlaw_fit(cluster_sizes, grid_size, car_count):
         fit = powerlaw.Fit(cluster_sizes, discrete=True)
 
         # Create a plot of the PDF

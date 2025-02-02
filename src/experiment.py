@@ -1015,6 +1015,7 @@ def run_giant_component_experiment():
             sim = Simulation_2D_NoUI(
                 None,
                 max_iter=1000,
+                rotary_method=FIXED_DESTINATION,
                 grid_size=100,
                 road_length=8,
                 road_max_speed=2,
